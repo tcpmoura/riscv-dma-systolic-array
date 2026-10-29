@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Simulacao
+*.vvp
+*.vcd
+*.fst
+*.shm/
+a.out
+xcelium.d/
+INCA_libs/
+*.log
+*.history
+
+# Arquivos locais
+.vscode/
+~$*
+.DS_Store
+Thumbs.db
+/docs/gerar_especificacao.py
