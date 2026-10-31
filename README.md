@@ -18,6 +18,10 @@ O acelerador contém buffers A/B, lógica de atraso das entradas (skew) e uma ma
 
 ### Diagrama de blocos
 
+Versão para visualização e impressão: [diagrama em PDF](docs/Arquitetura_Geral.pdf).
+
+![Arquitetura geral e interfaces dos blocos](docs/Arquitetura_Geral.png)
+
 ```mermaid
 flowchart TB
     subgraph CPU_SUB["Subsistema Processador (Arquitetura Harvard)"]
