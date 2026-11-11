@@ -3,7 +3,7 @@
 As somas e seleções do núcleo foram transformadas em instâncias de `adder`, `mux2` e `mux4`.
 Nenhuma porta externa de `rv32i_core` foi alterada. Os nomes internos `pc4`, `pc_target`, `pc_next`, `alu_a`, `alu_b`, `writeback` foram preservados.
 
-**Execução:** `bash run_all.sh` (8 testes) ou `bash run_xcelium_integration.sh` (teste integrado).
+**Execução:** utilize o `xrun` diretamente nos testbenches `tb_test_*.v` ou no testbench integrado `rv32i_soc_tb.v`.
 
 **Novos módulos:**
 - `add_pc4_inst`: PC + 4

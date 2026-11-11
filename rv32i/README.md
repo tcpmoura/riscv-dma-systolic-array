@@ -4,16 +4,10 @@ Suite de **8 programas independentes**, para executar com o **Xcelium 24.09**. C
 
 ## Execução
 
-Na pasta extraída, execute:
+Na pasta do processador, execute no **Cadence Xcelium**, por exemplo:
 
 ```bash
-bash run_all.sh
-```
-
-O script executa separadamente oito compilações usando `-clean`, cria um `.log` por caso e informa `ALL VERIFICATION TESTS: PASS` somente se todos os resumos exibirem PASS. Para execução isolada, por exemplo:
-
-```bash
-xrun -64bit -v2001 -clean pc.v register_file.v alu.v immediate_generator.v control_unit.v branch_unit.v instruction_memory.v load_store_unit.v data_memory.v rv32i_core.v tb_test_memory.v -top tb_test_memory -access +rwc
+xrun -64bit -v2001 -clean pc.v adder.v mux2.v mux4.v register_file.v alu.v immediate_generator.v control_unit.v branch_unit.v instruction_memory.v load_store_unit.v data_memory.v rv32i_core.v tb_test_memory.v -top tb_test_memory -access +rwc
 ```
 
 Use diretório de trabalho com os `.hex` na raiz. Os arquivos `test_*.s` contêm código Assembly com rótulos e correspondem às instruções codificadas nos arquivos hexadecimais.

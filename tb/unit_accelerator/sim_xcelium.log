@@ -1,0 +1,133 @@
+xrun(64): 24.09-s013: (c) Copyright 1995-2025 Cadence Design Systems, Inc.
+TOOL:	xrun(64)	24.09-s013: Started on Nov 11, 2026 at 09:18:18 -03
+xrun
+	-64bit
+	-sv
+	-clean
+	rtl/accelerator/mac_pe.v
+	rtl/accelerator/systolic_array.v
+	rtl/accelerator/systolic_accelerator.v
+	tb/unit_accelerator/tb_systolic_accelerator.sv
+	-top tb_systolic_accelerator
+	-access +rwc
+	-gui
+xrun: *N,CLEAN: Removing existing directory ./xcelium.d.
+file: rtl/accelerator/mac_pe.v
+	module worklib.mac_pe:v
+		errors: 0, warnings: 0
+file: rtl/accelerator/systolic_array.v
+	module worklib.systolic_array:v
+		errors: 0, warnings: 0
+file: rtl/accelerator/systolic_accelerator.v
+	module worklib.systolic_accelerator:v
+		errors: 0, warnings: 0
+file: tb/unit_accelerator/tb_systolic_accelerator.sv
+	module worklib.accel_bfm_harness:sv
+		errors: 0, warnings: 0
+	module worklib.tb_systolic_accelerator:sv
+		errors: 0, warnings: 0
+	Elaborating the design hierarchy:
+		Caching library 'worklib' ....... Done
+	Top level design units:
+		tb_systolic_accelerator
+	Building instance overlay tables: .................... Done
+	Generating native compiled code:
+		worklib.mac_pe:v <0x21bff7f1>
+			streams:   7, words:  4202
+		worklib.mac_pe:v <0x3a717f01>
+			streams:   7, words:  3956
+		worklib.mac_pe:v <0x196e0d83>
+			streams:   7, words:  3304
+		worklib.tb_systolic_accelerator:sv <0x44861d91>
+			streams:   5, words:  9100
+		worklib.systolic_array:v <0x3ff310d5>
+			streams:  12, words:  3624
+		worklib.systolic_accelerator:v <0x746197c2>
+			streams:  16, words: 10718
+		worklib.systolic_array:v <0x4de4126c>
+			streams:  12, words:  3864
+		worklib.systolic_accelerator:v <0x6106bc4e>
+			streams:  16, words: 10820
+		worklib.systolic_array:v <0x271cfd38>
+			streams:  12, words:  4700
+		worklib.systolic_accelerator:v <0x554eea90>
+			streams:  16, words: 12373
+		worklib.accel_bfm_harness:sv <0x43b94696>
+			streams:  28, words: 193023
+		worklib.accel_bfm_harness:sv <0x35635c23>
+			streams:  28, words: 192987
+		worklib.accel_bfm_harness:sv <0x02fa1f4a>
+			streams:  28, words: 192990
+	Building instance specific data structures.
+	Loading native compiled code:     .................... Done
+	Design hierarchy summary:
+		                   Instances  Unique
+		Modules:                  94       5
+		Registers:               568     111
+		Scalar wires:             45       -
+		Expanded wires:        6,016     308
+		Vectored wires:          478       -
+		Always blocks:            94       5
+		Initial blocks:            3       3
+		Cont. assignments:       513      12
+		Pseudo assignments:       55       -
+		Process Clocks:           90       3
+		Simulation timescale:    1ps
+	Writing initial simulation snapshot: worklib.tb_systolic_accelerator:sv
+xmsim: *W,NOMTDGUI: Multi-Threaded Dumping is disabled for interactive debug mode.
+
+-------------------------------------
+Relinquished control to SimVision...
+xcelium> 
+xcelium> source /cadence/XCELIUM2409/tools/xcelium/files/xmsimrc
+xcelium> database -open waves -into waves.shm -default
+Created default SHM database waves
+xcelium> probe -create -shm tb_systolic_accelerator.u_harness_2x2.clk tb_systolic_accelerator.u_harness_2x2.rst_n tb_systolic_accelerator.u_harness_2x2.acc_clear tb_systolic_accelerator.u_harness_2x2.buf_a_we tb_systolic_accelerator.u_harness_2x2.buf_a_row tb_systolic_accelerator.u_harness_2x2.buf_a_col tb_systolic_accelerator.u_harness_2x2.buf_a_wdata tb_systolic_accelerator.u_harness_2x2.buf_b_we tb_systolic_accelerator.u_harness_2x2.buf_b_row tb_systolic_accelerator.u_harness_2x2.buf_b_col tb_systolic_accelerator.u_harness_2x2.buf_b_wdata tb_systolic_accelerator.u_harness_2x2.acc_start tb_systolic_accelerator.u_harness_2x2.acc_busy tb_systolic_accelerator.u_harness_2x2.acc_done tb_systolic_accelerator.u_harness_2x2.buf_c_row tb_systolic_accelerator.u_harness_2x2.buf_c_col tb_systolic_accelerator.u_harness_2x2.buf_c_rdata
+Created probe 1
+xcelium> run
+==============================================================================
+ INICIANDO VERIFICACAO UNITARIA DO ACELERADOR SISTOLICO (2x2, 4x4 e 8x8)
+==============================================================================
+
+--- [1/3] Bateria de Testes na Malha 2x2 (ARRAY_SIZE = 2, 4 ciclos/tile) ---
+[PASS][2x2] Teste 1: Tile Unico TxT e Temporizacao (3T-2 ciclos) (M=2, K=2, N=2 | 4 ciclos de malha)
+[PASS][2x2] Teste 2: Extremos int8 (-128, +127) -> C[0][0]=+65536 em int32 (M=4, K=4, N=4 | 32 ciclos de malha)
+[PASS][2x2] Teste 3: Acumulacao de 3 tiles consecutivos sem clear e zeramento por acc_clear
+[PASS][2x2] Teste 4: Vetores Golden Model .hex (4x4 e 8x8 | 256 ciclos de malha no 8x8)
+[PASS][2x2] Teste 5a: Matriz Retangular 3x5 * 5x2 com Zero-Padding (M=3, K=5, N=2 | 24 ciclos de malha)
+[PASS][2x2] Teste 5b: Matriz Nao-Multipla 5x7 * 7x6 com Zero-Padding (M=5, K=7, N=6 | 144 ciclos de malha)
+[PASS][2x2] Teste 6: Protecao de A/B/start/clear em acc_busy=1 (com reexecucao sem recarga) e retencao de C
+[PASS][2x2] Teste 7: Reset assincrono durante acc_busy=1, limpeza independente de A/B/PEs e recuperacao (M=2, K=2, N=2 | 4 ciclos de malha)
+[PASS][2x2] Teste 8a: Casos pequenos e assimetricos (1x1, 1x7*7x1 e 6x3*3x7) (M=6, K=3, N=7 | 96 ciclos de malha)
+[PASS][2x2] Teste 8b: Limite maximo 32x32 com -128 (C[i][j] = +524288) (M=32, K=32, N=32 | 16384 ciclos de malha)
+
+--- [2/3] Bateria de Testes na Malha 4x4 (ARRAY_SIZE = 4, 10 ciclos/tile) ---
+[PASS][4x4] Teste 1: Tile Unico TxT e Temporizacao (3T-2 ciclos) (M=4, K=4, N=4 | 10 ciclos de malha)
+[PASS][4x4] Teste 2: Extremos int8 (-128, +127) -> C[0][0]=+65536 em int32 (M=4, K=4, N=4 | 10 ciclos de malha)
+[PASS][4x4] Teste 3: Acumulacao de 3 tiles consecutivos sem clear e zeramento por acc_clear
+[PASS][4x4] Teste 4: Vetores Golden Model .hex (4x4 e 8x8 | 80 ciclos de malha no 8x8)
+[PASS][4x4] Teste 5a: Matriz Retangular 3x5 * 5x2 com Zero-Padding (M=3, K=5, N=2 | 20 ciclos de malha)
+[PASS][4x4] Teste 5b: Matriz Nao-Multipla 5x7 * 7x6 com Zero-Padding (M=5, K=7, N=6 | 80 ciclos de malha)
+[PASS][4x4] Teste 6: Protecao de A/B/start/clear em acc_busy=1 (com reexecucao sem recarga) e retencao de C
+[PASS][4x4] Teste 7: Reset assincrono durante acc_busy=1, limpeza independente de A/B/PEs e recuperacao (M=4, K=4, N=4 | 10 ciclos de malha)
+[PASS][4x4] Teste 8a: Casos pequenos e assimetricos (1x1, 1x7*7x1 e 6x3*3x7) (M=6, K=3, N=7 | 40 ciclos de malha)
+[PASS][4x4] Teste 8b: Limite maximo 32x32 com -128 (C[i][j] = +524288) (M=32, K=32, N=32 | 5120 ciclos de malha)
+
+--- [3/3] Bateria de Testes na Malha 8x8 (ARRAY_SIZE = 8, 22 ciclos/tile) ---
+[PASS][8x8] Teste 1: Tile Unico TxT e Temporizacao (3T-2 ciclos) (M=8, K=8, N=8 | 22 ciclos de malha)
+[PASS][8x8] Teste 2: Extremos int8 (-128, +127) -> C[0][0]=+65536 em int32 (M=4, K=4, N=4 | 22 ciclos de malha)
+[PASS][8x8] Teste 3: Acumulacao de 3 tiles consecutivos sem clear e zeramento por acc_clear
+[PASS][8x8] Teste 4: Vetores Golden Model .hex (4x4 e 8x8 | 22 ciclos de malha no 8x8)
+[PASS][8x8] Teste 5a: Matriz Retangular 3x5 * 5x2 com Zero-Padding (M=3, K=5, N=2 | 22 ciclos de malha)
+[PASS][8x8] Teste 5b: Matriz Nao-Multipla 5x7 * 7x6 com Zero-Padding (M=5, K=7, N=6 | 22 ciclos de malha)
+[PASS][8x8] Teste 6: Protecao de A/B/start/clear em acc_busy=1 (com reexecucao sem recarga) e retencao de C
+[PASS][8x8] Teste 7: Reset assincrono durante acc_busy=1, limpeza independente de A/B/PEs e recuperacao (M=8, K=8, N=8 | 22 ciclos de malha)
+[PASS][8x8] Teste 8a: Casos pequenos e assimetricos (1x1, 1x7*7x1 e 6x3*3x7) (M=6, K=3, N=7 | 22 ciclos de malha)
+[PASS][8x8] Teste 8b: Limite maximo 32x32 com -128 (C[i][j] = +524288) (M=32, K=32, N=32 | 1408 ciclos de malha)
+
+==============================================================================
+ RESULTADO FINAL: TODOS OS 30/30 SUBTESTES PASSARAM (2x2, 4x4 e 8x8) - PASS!
+==============================================================================
+Simulation complete via $finish(1) at time 761561 NS + 0
+./tb/unit_accelerator/tb_systolic_accelerator.sv:943             $finish;
+xcelium> TOOL:	xrun(64)	24.09-s013: Exiting on Nov 11, 2026 at 10:00:47 -03  (total: 00:42:29)

@@ -1,12 +1,12 @@
 # RISC-V com DMA e acelerador de multiplicação matricial
 
-**Entrega Parcial I — Planejamento, microarquitetura e modelo de referência**
+**Entregas Parciais I e II — Planejamento, microarquitetura, modelo de referência, RTL do acelerador e testes unitários**
 
 ## 1. Objetivo
 
 O projeto calcula C = A × B, com A de dimensão M×K, B de dimensão K×N e C de dimensão M×N. A CPU configura a operação; o DMA busca os dados e grava o resultado; o acelerador realiza as multiplicações e somas. Após o início, a CPU não transfere elementos por software.
 
-Nesta etapa, apresentamos a arquitetura proposta, o mapa de memória, as interfaces e o modelo de referência em Python, conforme a seção 8.a do [enunciado](Projeto%20Final%20RISCV%20DMA%20Systolic%20Array.pdf). O processador existente está em `rv32i/`. Os demais módulos RTL, o firmware e o UVM integrado serão desenvolvidos nas próximas entregas.
+Neste documento apresentamos a arquitetura proposta, o mapa de memória, as interfaces, o modelo de referência em Python (seção 8.a do [enunciado](Projeto%20Final%20RISCV%20DMA%20Systolic%20Array.pdf)) e o RTL do acelerador sistólico com sua verificação unitária em SystemVerilog (seção 8.b do enunciado). O processador existente está em `rv32i/`, o acelerador em `rtl/accelerator/` e o testbench unitário em `tb/unit_accelerator/`. O controlador DMA, a memória compartilhada AXI4, o firmware e o UVM integrado serão desenvolvidos nas próximas entregas.
 
 ## 2. Arquitetura proposta
 
@@ -16,84 +16,14 @@ A CPU usa uma ponte para acessar o AXI4. CPU e DMA disputam a interconexão, com
 
 O acelerador contém buffers A/B, lógica de atraso das entradas (skew) e uma malha de unidades MAC. A malha será parametrizada para 2×2, 4×4 e 8×8. O DMA controla o particionamento em blocos (tiling).
 
-### Diagrama de blocos
+### Diagrama esquemático RTL da arquitetura geral
 
 Versão para visualização e impressão: [diagrama em PDF](docs/Arquitetura_Geral.pdf).
 
-![Arquitetura geral e interfaces dos blocos](docs/Arquitetura_Geral.png)
+![Diagrama esquemático RTL da arquitetura geral do sistema](docs/Arquitetura_Geral.png)
 
-```mermaid
-flowchart TB
-    subgraph CPU_SUB["Subsistema Processador (Arquitetura Harvard)"]
-        IMEM["Memória de Instruções (IMEM)<br/>imem.hex (ROM 32-bit)"]
-        CPU["Processador RISC-V RV32I<br/>(Sem pipeline, com espera)"]
-        BRIDGE["CPU-to-AXI4 Bridge<br/>(Single-Beat LEN=0)"]
-        IMEM -->|"instruction 32 bits"| CPU
-        CPU -->|"pc_addr 32 bits"| IMEM
-        CPU <-->|"valid, ready, write, addr, wdata, rdata, wstrb, error"| BRIDGE
-    end
-
-    subgraph BUS_SUB["Interconexão AMBA AXI4 Compartilhada"]
-        ARB["Árbitro AXI4<br/>(Prioridade Fixa ao DMA<br/>Sem Preempção de Burst)"]
-        DEC["Decodificador de Endereços<br/>DMEM: 0x00000000 a 0x00003FFF<br/>MMIO: 0x40000000 a 0x4000002F"]
-        ARB <--> DEC
-    end
-
-    subgraph MEM_SUB["Memória Principal"]
-        DMEM["Memória de Dados Compartilhada (DMEM)<br/>Memória descrita em RTL, 32-bit, AXI4<br/>Matrizes A, B e C"]
-    end
-
-    subgraph ACCEL_SUB["Subsistema DMA + Coprocessador Matricial"]
-        DMA["Controlador de DMA<br/>• Registradores MMIO + Profiling<br/>• FSM de Tiling (ti, tj, tk)<br/>• Mestre AXI4 (Burst INCR)"]
-        BUFA["Buffer Local A<br/>(T x T bytes int8)"]
-        BUFB["Buffer Local B<br/>(T x T bytes int8)"]
-        SKEW["Lógica de Skew em Hardware<br/>(Atraso i linhas / j colunas)"]
-        SA["Systolic Array Parametrizável<br/>(ARRAY_SIZE x ARRAY_SIZE PEs)<br/>Fluxo Output-Stationary<br/>Acumuladores C (int32)"]
-
-        DMA -->|"Escrita Tile A (int8)"| BUFA
-        DMA -->|"Escrita Tile B (int8)"| BUFB
-        DMA -->|"acc_clear / acc_start"| SA
-        SA -->|"acc_busy / acc_done"| DMA
-        BUFA --> SKEW
-        BUFB --> SKEW
-        SKEW -->|"T entradas A e T entradas B de 8 bits"| SA
-        SA -->|"Leitura Tile C (int32)"| DMA
-    end
-
-    BRIDGE <-->|"AXI4 Master 0 (CPU)"| ARB
-    DMA <-->|"AXI4 Master 1 (DMA Burst)"| ARB
-    DEC <-->|"AXI4 Slave 0 (0x0000_0000)"| DMEM
-    DEC <-->|"AXI4 Slave 1 (0x4000_0000)"| DMA
-    DMA -.->|"irq_done: conexão futura"| CPU
-```
-
-### Versão textual do diagrama
-
-```text
-IMEM <---- endereço / instrução ----> CPU RV32I
-                                      |
-                             interface valid/ready
-                                      |
-                                Ponte CPU-AXI4
-                                      | mestre 0
-DMA (mestre 1) <----> [ Árbitro + decodificador ]
-                                      |
-                         +------------+------------+
-                         | escravo 0               | escravo 1
-                    DMEM 16 KB                MMIO do DMA
-                    matrizes A/B/C            configuração/status
-
-DMA ---- escrita de blocos ----> Buffers A/B --> Skew --> Malha MAC
-DMA ---- clear/start ----------------------------------> Malha MAC
-DMA <--- busy/done e leitura dos acumuladores C -------- Malha MAC
-DMA .... irq_done (planejado) ..........................> CPU
-
-Acelerador = buffers A/B + skew + malha + controle local.
-DMA controla tiling e escreve C na DMEM após finalizar cada bloco.
-Clock e reset comuns: clk, rst_n. Interfaces detalhadas na seção 5.
-```
-
-Os diagramas representam a integração planejada. A IMEM já é instanciada dentro de `rv32i_core`, mas aparece separada para mostrar a organização Harvard. O núcleo não tem pipeline e permite espera nos acessos de dados. A entrada `irq_done` ainda será adicionada na integração.
+O diagrama esquemático RTL acima representa a integração planejada. A IMEM já é instanciada dentro de 
+v32i_core, mas aparece explícita no caminho de busca (PC + 4 e endereço de instrução) para mostrar a organização Harvard. O núcleo não tem pipeline e permite espera nos acessos de dados. A entrada irq_done ainda será adicionada na integração.
 
 ## 3. Dados e funcionamento do acelerador
 
@@ -245,7 +175,7 @@ Com `acc_busy=0`, cada `buf_a_we`/`buf_b_we` grava um elemento na borda de subid
 
 O acelerador aceita `acc_start` quando ocioso; busy sobe e a primeira atualização MAC ocorre na borda seguinte. Após 3T−2 atualizações, busy cai e done fica alto por um ciclo. A leitura de C é combinacional, selecionada por linha/coluna: após done, o DMA mantém os índices durante o ciclo e captura o valor na próxima borda. O resultado permanece até novo clear ou cálculo.
 
-No reset, busy/done e acumuladores são zerados. Os buffers serão preenchidos pelo DMA antes do uso. O tratamento de comandos durante busy e o atendimento da interrupção serão detalhados antes da implementação desses módulos.
+No reset (`rst_n=0`), `acc_busy`, `acc_done`, os registradores de propagação entre PEs (`a_out`, `b_out`), os acumuladores `acc[i][j]` e os buffers locais `buf_a`/`buf_b` são zerados. Enquanto `acc_busy=1`, o acelerador ignora comandos externos (`acc_start`, `acc_clear`, `buf_a_we`, `buf_b_we`), protegendo os buffers e a acumulação em andamento. Quando ocioso (`acc_busy=0`), se `acc_clear` e `acc_start` forem acionados no mesmo ciclo, `acc_clear` tem prioridade (zera os acumuladores e mantém `acc_busy=0`, exigindo pulso `acc_start` separado); ao aceitar `acc_start` com `acc_clear=0`, os registradores de passagem inter-PE são limpos preservando `acc[i][j]`. O atendimento da interrupção `irq_done` na CPU será detalhado na etapa de integração.
 
 ## 6. Modelo de referência
 
@@ -281,16 +211,98 @@ Para duas matrizes 8×8, o modelo produz:
 
 Esses ciclos representam apenas a malha ideal. Não incluem carga, controle do DMA, arbitragem ou espera na memória. Área, frequência e latência total serão medidas no RTL e na síntese.
 
-## 7. Organização e próximos passos
+## 7. RTL do acelerador e verificação unitária (Entrega Parcial II)
+
+O acelerador matricial foi implementado em Verilog-2001 sintetizável em [`rtl/accelerator/`](rtl/accelerator/) e verificado por um testbench autoverificável em SystemVerilog em [`tb/unit_accelerator/`](tb/unit_accelerator/README.md).
+
+### Hierarquia dos módulos RTL
+
+| Módulo | Arquivo | Descrição |
+| :--- | :--- | :--- |
+| `mac_pe` | [`rtl/accelerator/mac_pe.v`](rtl/accelerator/mac_pe.v) | Unidade MAC (*Processing Element* `Output-Stationary`). Recebe `a_in` e `b_in` em `signed [7:0]` (`int8`), calcula o produto `signed [15:0]` com extensão de sinal exata e acumula em `acc_out` (`signed [31:0]`, `int32` sem saturação). Propaga `a_in -> a_out` (direita) e `b_in -> b_out` (baixo) quando `en=1`. Suporta limpeza total (`clear_acc`) e limpeza apenas dos registradores de passagem (`clear_pipe`). |
+| `systolic_array` | [`rtl/accelerator/systolic_array.v`](rtl/accelerator/systolic_array.v) | Malha bidimensional parametrizável `ARRAY_SIZE × ARRAY_SIZE` gerada por blocos `generate`. Conecta os PEs horizontal e verticalmente a partir das bordas `a_edge_flat` e `b_edge_flat`, exportando os acumuladores de 32 bits em `acc_flat`. |
+| `systolic_accelerator` | [`rtl/accelerator/systolic_accelerator.v`](rtl/accelerator/systolic_accelerator.v) | Top-Level do acelerador com a interface exata da seção 5. Contém os buffers locais `buf_a` e `buf_b` ($T \times T$ `int8`), o contador de ciclos e controle `acc_busy`/`acc_done` ($3T-2$ ciclos ativos por tile), a lógica combinacional de *skew* nas bordas ($k_a = t - i$, $k_b = t - j$, injetando `0` fora de $0 \le k < T$) e a leitura combinacional `buf_c_rdata`. |
+
+#### 1. Caminho de dados RTL da Unidade MAC (`mac_pe.v`)
+
+Versão em PDF para impressão: [Datapath_MAC_PE.pdf](docs/Datapath_MAC_PE.pdf).
+
+![Caminho de dados RTL da Unidade MAC (mac_pe.v)](docs/Datapath_MAC_PE.png)
+
+#### 2. Caminho de dados e controle RTL do Acelerador Sistólico (`systolic_accelerator.v` e `systolic_array.v`)
+
+Versão em PDF para impressão: [Datapath_Systolic_Accelerator.pdf](docs/Datapath_Systolic_Accelerator.pdf).
+
+![Caminho de dados e controle RTL do Acelerador Sistólico (systolic_accelerator.v)](docs/Datapath_Systolic_Accelerator.png)
+
+### Verificação unitária (SystemVerilog)
+
+O testbench [`tb/unit_accelerator/tb_systolic_accelerator.sv`](tb/unit_accelerator/tb_systolic_accelerator.sv) instancia as três configurações físicas do projeto (**`ARRAY_SIZE = 2`**, **`ARRAY_SIZE = 4`** e **`ARRAY_SIZE = 8`**) por meio do módulo BFM parametrizável `accel_bfm_harness` e executa **sequencialmente** a suíte de 10 subtestes em cada instância (totalizando 30 subtestes). O BFM emula manualmente o controlador de DMA (escrita nos buffers com validação estrita da faixa `int8` `[-128..127]` e *zero-padding* nas bordas, pulsos `acc_clear` e `acc_start`, verificação ciclo a ciclo de `acc_busy` e `acc_done` com *timeout*, e leitura de `buf_c_rdata`). Em caso de falha, a simulação encerra com `$fatal(1, ...)` retornando código de saída não-zero.
+
+Os resultados reportados abaixo foram validados tanto no **Cadence Xcelium 24.09 (`xrun` / SimVision)** (log em [`tb/unit_accelerator/sim_xcelium.log`](tb/unit_accelerator/sim_xcelium.log) e captura real em [`docs/SimVision_Waveform_Teste1_2x2.png`](docs/SimVision_Waveform_Teste1_2x2.png)) quanto no **Icarus Verilog 12.0 (`-g2012`)** (log em [`tb/unit_accelerator/sim_iverilog.log`](tb/unit_accelerator/sim_iverilog.log)).
+
+Na raiz do projeto, execute no **Cadence Xcelium**:
+
+```bash
+xrun -64bit -sv -clean rtl/accelerator/mac_pe.v rtl/accelerator/systolic_array.v rtl/accelerator/systolic_accelerator.v tb/unit_accelerator/tb_systolic_accelerator.sv -top tb_systolic_accelerator -access +rwc
+```
+
+Ou no **Icarus Verilog**:
+
+```powershell
+iverilog -g2012 -o tb_acc.vvp rtl/accelerator/mac_pe.v rtl/accelerator/systolic_array.v rtl/accelerator/systolic_accelerator.v tb/unit_accelerator/tb_systolic_accelerator.sv
+vvp tb_acc.vvp
+```
+
+### Resultados dos testes unitários (30/30 PASS)
+
+Cada uma das três malhas ($2\times2$, $4\times4$ e $8\times8$) foi submetida a 10 subtestes autoverificáveis:
+
+| Subteste | Cenário verificado | Ciclos de malha medidos ($2\times2$ / $4\times4$ / $8\times8$) | Resultado |
+| :--- | :--- | :---: | :---: |
+| **Teste 1** | 1 Tile único $T \times T$ e contrato temporal ($3T-2$ ciclos de `acc_busy=1` e 1 ciclo de `acc_done=1`) | `4` / `10` / `22` | **PASS** |
+| **Teste 2** | Extremos `int8` com sinal (`-128`, `+127`, `-1`, `0`) acumulando em `int32` ($C_{0,0} = +65536$) | `32` / `10` / `22` | **PASS** |
+| **Teste 3** | Acumulação de 3 tiles consecutivos ao longo de $K$ sem `acc_clear` e limpeza subsequente por `acc_clear` | `12` / `30` / `66` | **PASS** |
+| **Teste 4** | Multiplicação $4\times4$ e $8\times8$ com *tiling* lendo os vetores `.hex` do Golden Model (`mat_4x4_*` e `mat_8x8x8_*`) | `256` / `80` / `22` (no $8\times8$) | **PASS** |
+| **Teste 5a** | Matriz retangular $3\times5 \times 5\times2$ com *zero-padding* nos buffers locais | `24` / `20` / `22` | **PASS** |
+| **Teste 5b** | Matriz não-múltipla $5\times7 \times 7\times6$ com *zero-padding* nos buffers locais | `144` / `80` / `22` | **PASS** |
+| **Teste 6** | Proteção de $A$, $B$, `acc_start` e `acc_clear` durante `acc_busy=1` (sobre elementos ainda não consumidos + reexecução sem recarga), prioridade de `acc_clear` e retenção de $C$ | `8` / `20` / `44` (2 runs) | **PASS** |
+| **Teste 7** | Reset assíncrono (`rst_n=0`) durante `acc_busy=1`, verificando limpeza assíncrona dos PEs antes da borda de subida, limpeza independente dos buffers $A$ e $B$, e recuperação | `4` / `10` / `22` | **PASS** |
+| **Teste 8a** | Casos pequenos e assimétricos ($1\times1$, $1\times7 \times 7\times1$ e $6\times3 \times 3\times7$) | `96` / `40` / `22` (no $6\times3\times7$) | **PASS** |
+| **Teste 8b** | Limite máximo $32\times32 \times 32\times32$ com todos os operandos `-128` ($C_{i,j} = +524.288$) | `16384` / `5120` / `1408` | **PASS** |
+
+### Formas de onda: captura real no Cadence SimVision e diagrama temporal ilustrativo
+
+#### 1. Captura real da simulação no Cadence Xcelium / SimVision (`20,000 ps – 200,000 ps`)
+
+A captura abaixo ([versão em PDF](docs/SimVision_Waveform_Teste1_2x2.pdf)) registra a execução real da primeira multiplicação $2\times2$ (`Teste 1` em `u_harness_2x2.u_dut`) no **Cadence SimVision**:
+- **`30,000 ps – 40,000 ps` (`30 ns – 40 ns`):** pulso de `acc_clear = 1` zerando os acumuladores da malha;
+- **`50,000 ps – 90,000 ps` (`50 ns – 90 ns`):** `buf_a_we = 1` e `buf_b_we = 1` carregando simultaneamente os 4 elementos de $A$ (`-95, -92, -89, -86`) e de $B$ (`-18, -17, -16, -14`) nas coordenadas `(0,0), (0,1), (1,0), (1,1)`;
+- **`100,000 ps – 110,000 ps` (`100 ns – 110 ns`):** pulso de `acc_start = 1`;
+- **`105,000 ps – 145,000 ps` (`105 ns – 145 ns`):** `acc_busy = 1` permanece alto por exatos $3T - 2 = 4$ ciclos de clock (`40 ns`), com `buf_c_rdata` na posição `(0,0)` evoluindo em tempo real (`0 -> 1710 -> 3182`);
+- **`145,000 ps – 155,000 ps` (`145 ns – 155 ns`):** `acc_busy` cai para `0` e `acc_done` pulsa em `1` por exatamente 1 ciclo;
+- **`160,000 ps – 190,000 ps` (`160 ns – 190 ns`):** varredura combinacional de `(buf_c_row, buf_c_col)` em `(0,0), (0,1), (1,0), (1,1)` entregando `buf_c_rdata = 3182, 2903, 2978, 2717`.
+
+![Captura real da forma de onda no Cadence SimVision (Teste 1, malha 2x2)](docs/SimVision_Waveform_Teste1_2x2.png)
+
+#### 2. Diagrama temporal ilustrativo da operação do acelerador
+
+Versão em PDF para impressão: [diagrama temporal ilustrativo em PDF](docs/Waveform_Acelerador_Entrega_2.pdf).
+
+![Diagrama temporal ilustrativo do acelerador sistólico](docs/Waveform_Acelerador_Entrega_2.png)
+
+## 8. Organização e próximos passos
 
 | Diretório | Conteúdo atual ou previsto |
 | :--- | :--- |
 | `rv32i/` | CPU existente, programas e testes |
 | `sw/golden_model/` | Modelo Python, testes, documentação e vetores |
 | `docs/` | Especificação em Word e PDF |
-| `rtl/` | Pastas reservadas: cpu, bus, dma, accelerator, memory e top |
+| `rtl/accelerator/` | **Implementado (Entrega II):** `mac_pe.v`, `systolic_array.v` e `systolic_accelerator.v` |
+| `tb/unit_accelerator/` | **Implementado (Entrega II):** `tb_systolic_accelerator.sv`, logs de simulação e documentação |
+| `rtl/` (demais pastas) | Reservadas para as próximas etapas: `cpu`, `bus`, `dma`, `memory` e `top` |
 | `sw/firmware/` | Reservada para o programa de configuração |
 | `tb/` | Reservada para testes unitários e UVM integrado |
 | `syn/` | Reservada para scripts e relatórios de síntese |
 
-A próxima entrega trata do RTL do acelerador e de seus testes unitários. .
+A próxima entrega (Entrega Parcial III) trata do RTL do controlador de DMA, da memória de dados compartilhada e do testbench integrando DMA, Memória e Acelerador.

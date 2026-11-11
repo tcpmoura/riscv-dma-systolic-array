@@ -12,7 +12,11 @@ a.out
 xcelium.d/
 INCA_libs/
 *.log
+!tb/unit_accelerator/sim_*.log
 *.history
+.simvision/
+*.diag
+*.key
 
 # Arquivos locais
 .vscode/
