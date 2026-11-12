@@ -22,8 +22,7 @@ Versão para visualização e impressão: [diagrama em PDF](docs/Arquitetura_Ger
 
 ![Diagrama esquemático RTL da arquitetura geral do sistema](docs/Arquitetura_Geral.png)
 
-O diagrama esquemático RTL acima representa a integração planejada. A IMEM já é instanciada dentro de 
-v32i_core, mas aparece explícita no caminho de busca (PC + 4 e endereço de instrução) para mostrar a organização Harvard. O núcleo não tem pipeline e permite espera nos acessos de dados. A entrada irq_done ainda será adicionada na integração.
+O diagrama esquemático RTL acima representa a integração planejada. A IMEM já é instanciada dentro de `rv32i_core`, mas aparece explícita no caminho de busca (PC e instrução) para mostrar a organização Harvard. O núcleo não tem pipeline e permite espera nos acessos de dados. A entrada `irq_done` ainda será adicionada na integração.
 
 ## 3. Dados e funcionamento do acelerador
 
@@ -267,7 +266,7 @@ Cada uma das três malhas ($2\times2$, $4\times4$ e $8\times8$) foi submetida a 
 | **Teste 5a** | Matriz retangular $3\times5 \times 5\times2$ com *zero-padding* nos buffers locais | `24` / `20` / `22` | **PASS** |
 | **Teste 5b** | Matriz não-múltipla $5\times7 \times 7\times6$ com *zero-padding* nos buffers locais | `144` / `80` / `22` | **PASS** |
 | **Teste 6** | Proteção de $A$, $B$, `acc_start` e `acc_clear` durante `acc_busy=1` (sobre elementos ainda não consumidos + reexecução sem recarga), prioridade de `acc_clear` e retenção de $C$ | `8` / `20` / `44` (2 runs) | **PASS** |
-| **Teste 7** | Reset assíncrono (`rst_n=0`) durante `acc_busy=1`, verificando limpeza assíncrona dos PEs antes da borda de subida, limpeza independente dos buffers $A$ e $B$, e recuperação | `4` / `10` / `22` | **PASS** |
+| **Teste 7** | Reset assíncrono (`rst_n=0`) durante `acc_busy=1`, verificando simultaneamente `acc_flat === '0'` em todos os PEs antes da próxima borda de subida, limpeza independente dos buffers $A$ e $B$, e recuperação | `4` / `10` / `22` | **PASS** |
 | **Teste 8a** | Casos pequenos e assimétricos ($1\times1$, $1\times7 \times 7\times1$ e $6\times3 \times 3\times7$) | `96` / `40` / `22` (no $6\times3\times7$) | **PASS** |
 | **Teste 8b** | Limite máximo $32\times32 \times 32\times32$ com todos os operandos `-128` ($C_{i,j} = +524.288$) | `16384` / `5120` / `1408` | **PASS** |
 

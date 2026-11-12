@@ -741,7 +741,9 @@ module accel_bfm_harness #(
 
         // 7.1. Aciona reset assíncrono no meio da execução e verifica IMEDIATAMENTE
         //      (ANTES de qualquer borda de subida do clock) que busy, done e todos
-        //      os acumuladores zeraram assincronamente!
+        //      os acumuladores zeraram assincronamente. A verificação de todos os
+        //      PEs é simultânea: compara o vetor completo acc_flat com zero após
+        //      um único atraso de 1 ns (a próxima borda de subida ocorre ~6 ns depois).
         rst_n = 1'b0;
         #1;
         if (acc_busy !== 1'b0 || acc_done !== 1'b0) begin
@@ -749,15 +751,21 @@ module accel_bfm_harness #(
                      ARRAY_SIZE, ARRAY_SIZE);
             errors = errors + 1;
         end
-        for (i = 0; i < ARRAY_SIZE; i = i + 1) begin
-            for (j = 0; j < ARRAY_SIZE; j = j + 1) begin
-                buf_c_row = i[IDX_W-1:0];
-                buf_c_col = j[IDX_W-1:0];
-                #1;
-                if (buf_c_rdata !== 32'sd0) begin
-                    $display("[FAIL][%0dx%0d] Teste 7: Acumulador (%0d,%0d) nao zerou assincronamente antes da borda de clock: %0d",
-                             ARRAY_SIZE, ARRAY_SIZE, i, j, buf_c_rdata);
-                    errors = errors + 1;
+        if (u_dut.acc_flat !== '0) begin
+            $display("[FAIL][%0dx%0d] Teste 7: acc_flat nao zerou assincronamente antes da borda de clock: %h",
+                     ARRAY_SIZE, ARRAY_SIZE, u_dut.acc_flat);
+            errors = errors + 1;
+            // Diagnóstico: identifica individualmente os PEs que falharam
+            // (o reset continua ativo, portanto os valores ficam congelados).
+            for (i = 0; i < ARRAY_SIZE; i = i + 1) begin
+                for (j = 0; j < ARRAY_SIZE; j = j + 1) begin
+                    buf_c_row = i[IDX_W-1:0];
+                    buf_c_col = j[IDX_W-1:0];
+                    #1;
+                    if (buf_c_rdata !== 32'sd0) begin
+                        $display("[FAIL][%0dx%0d] Teste 7:   PE(%0d,%0d) = %0d",
+                                 ARRAY_SIZE, ARRAY_SIZE, i, j, buf_c_rdata);
+                    end
                 end
             end
         end
