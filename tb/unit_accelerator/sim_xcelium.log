@@ -1,16 +1,5 @@
+TOOL:	xrun(64)	24.09-s013: Started on Nov 12, 2026 at 06:43:08 -03
 xrun(64): 24.09-s013: (c) Copyright 1995-2025 Cadence Design Systems, Inc.
-TOOL:	xrun(64)	24.09-s013: Started on Nov 11, 2026 at 09:18:18 -03
-xrun
-	-64bit
-	-sv
-	-clean
-	rtl/accelerator/mac_pe.v
-	rtl/accelerator/systolic_array.v
-	rtl/accelerator/systolic_accelerator.v
-	tb/unit_accelerator/tb_systolic_accelerator.sv
-	-top tb_systolic_accelerator
-	-access +rwc
-	-gui
 xrun: *N,CLEAN: Removing existing directory ./xcelium.d.
 file: rtl/accelerator/mac_pe.v
 	module worklib.mac_pe:v
@@ -38,26 +27,26 @@ file: tb/unit_accelerator/tb_systolic_accelerator.sv
 			streams:   7, words:  3956
 		worklib.mac_pe:v <0x196e0d83>
 			streams:   7, words:  3304
-		worklib.tb_systolic_accelerator:sv <0x44861d91>
+		worklib.tb_systolic_accelerator:sv <0x76fb750a>
 			streams:   5, words:  9100
 		worklib.systolic_array:v <0x3ff310d5>
 			streams:  12, words:  3624
-		worklib.systolic_accelerator:v <0x746197c2>
-			streams:  16, words: 10718
 		worklib.systolic_array:v <0x4de4126c>
 			streams:  12, words:  3864
-		worklib.systolic_accelerator:v <0x6106bc4e>
-			streams:  16, words: 10820
 		worklib.systolic_array:v <0x271cfd38>
 			streams:  12, words:  4700
+		worklib.accel_bfm_harness:sv <0x485f50c6>
+			streams:  28, words: 194487
+		worklib.systolic_accelerator:v <0x746197c2>
+			streams:  16, words: 10718
+		worklib.accel_bfm_harness:sv <0x292dcf9f>
+			streams:  28, words: 194457
+		worklib.systolic_accelerator:v <0x6106bc4e>
+			streams:  16, words: 10820
+		worklib.accel_bfm_harness:sv <0x5debbbc7>
+			streams:  28, words: 194568
 		worklib.systolic_accelerator:v <0x554eea90>
 			streams:  16, words: 12373
-		worklib.accel_bfm_harness:sv <0x43b94696>
-			streams:  28, words: 193023
-		worklib.accel_bfm_harness:sv <0x35635c23>
-			streams:  28, words: 192987
-		worklib.accel_bfm_harness:sv <0x02fa1f4a>
-			streams:  28, words: 192990
 	Building instance specific data structures.
 	Loading native compiled code:     .................... Done
 	Design hierarchy summary:
@@ -74,16 +63,8 @@ file: tb/unit_accelerator/tb_systolic_accelerator.sv
 		Process Clocks:           90       3
 		Simulation timescale:    1ps
 	Writing initial simulation snapshot: worklib.tb_systolic_accelerator:sv
-xmsim: *W,NOMTDGUI: Multi-Threaded Dumping is disabled for interactive debug mode.
-
--------------------------------------
-Relinquished control to SimVision...
-xcelium> 
+Loading snapshot worklib.tb_systolic_accelerator:sv .................... Done
 xcelium> source /cadence/XCELIUM2409/tools/xcelium/files/xmsimrc
-xcelium> database -open waves -into waves.shm -default
-Created default SHM database waves
-xcelium> probe -create -shm tb_systolic_accelerator.u_harness_2x2.clk tb_systolic_accelerator.u_harness_2x2.rst_n tb_systolic_accelerator.u_harness_2x2.acc_clear tb_systolic_accelerator.u_harness_2x2.buf_a_we tb_systolic_accelerator.u_harness_2x2.buf_a_row tb_systolic_accelerator.u_harness_2x2.buf_a_col tb_systolic_accelerator.u_harness_2x2.buf_a_wdata tb_systolic_accelerator.u_harness_2x2.buf_b_we tb_systolic_accelerator.u_harness_2x2.buf_b_row tb_systolic_accelerator.u_harness_2x2.buf_b_col tb_systolic_accelerator.u_harness_2x2.buf_b_wdata tb_systolic_accelerator.u_harness_2x2.acc_start tb_systolic_accelerator.u_harness_2x2.acc_busy tb_systolic_accelerator.u_harness_2x2.acc_done tb_systolic_accelerator.u_harness_2x2.buf_c_row tb_systolic_accelerator.u_harness_2x2.buf_c_col tb_systolic_accelerator.u_harness_2x2.buf_c_rdata
-Created probe 1
 xcelium> run
 ==============================================================================
  INICIANDO VERIFICACAO UNITARIA DO ACELERADOR SISTOLICO (2x2, 4x4 e 8x8)
@@ -128,6 +109,7 @@ xcelium> run
 ==============================================================================
  RESULTADO FINAL: TODOS OS 30/30 SUBTESTES PASSARAM (2x2, 4x4 e 8x8) - PASS!
 ==============================================================================
-Simulation complete via $finish(1) at time 761561 NS + 0
-./tb/unit_accelerator/tb_systolic_accelerator.sv:943             $finish;
-xcelium> TOOL:	xrun(64)	24.09-s013: Exiting on Nov 11, 2026 at 10:00:47 -03  (total: 00:42:29)
+Simulation complete via $finish(1) at time 761491 NS + 0
+./tb/unit_accelerator/tb_systolic_accelerator.sv:951             $finish;
+xcelium> exit
+TOOL:	xrun(64)	24.09-s013: Exiting on Nov 12, 2026 at 06:43:30 -03  (total: 00:00:22)
