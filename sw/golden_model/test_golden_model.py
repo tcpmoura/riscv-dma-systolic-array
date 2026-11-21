@@ -4,7 +4,8 @@
 # Projeto     : RISC-V RV32I com Controlador DMA e Coprocessador Matricial
 # Etapa       : Entrega Parcial I — Planejamento, Microarquitetura e Golden Model
 # Arquivo     : test_golden_model.py
-# Professores : Igor Dantas dos Santos Miranda
+# Professores : Ana Julia Fernandes de Oliveira Barros
+#               Igor Dantas dos Santos Miranda
 #               João Alberto Castelo Branco Oliveira
 # Grupo 4     : João Vitor Carvalho Lima
 #               Matheus Artur Macedo Bomfim
