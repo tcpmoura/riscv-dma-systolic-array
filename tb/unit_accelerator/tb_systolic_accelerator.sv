@@ -1,32 +1,25 @@
 // =============================================================================
-// Testbench: tb_systolic_accelerator.sv
-// Descrição: Testbench Unitário Autoverificável em SystemVerilog para o
-//            Acelerador Matricial (Systolic Array Output-Stationary).
+// Projeto     : RISC-V RV32I com Controlador DMA e Coprocessador Matricial
+// Etapa       : Entrega Parcial II — RTL do Acelerador (Systolic Array) e Testes Unitários
+// Módulo      : tb_systolic_accelerator.sv
+// Professores : Igor Dantas dos Santos Miranda
+//               João Alberto Castelo Branco Oliveira
+// Grupo 4     : João Vitor Carvalho Lima
+//               Matheus Artur Macedo Bomfim
+//               Nathalia Miranda
+//               Tatiana Caetano Praxedes de Moura
+// Descrição   : Testbench Unitário Autoverificável em SystemVerilog para o
+//               Acelerador Matricial (Systolic Array Output-Stationary).
 //
-// Escopo de Verificação (Entrega Parcial II — Seção 8.b):
-//   - Instancia as três configurações físicas do projeto: ARRAY_SIZE = 2 (2x2),
-//     ARRAY_SIZE = 4 (4x4) e ARRAY_SIZE = 8 (8x8), executando sequencialmente
-//     a bateria completa de testes em cada instância.
-//   - Emula o comportamento do controlador de DMA (tasks BFM para carga de
-//     buffers locais com zero-padding e validação estrita da faixa int8,
-//     controle de acc_clear / acc_start, monitoramento ciclo a ciclo de
-//     acc_busy / acc_done com timeout e leitura combinacional de C).
-//   - Executa 10 subtestes em cada tamanho de malha (30 subtestes no total):
-//       1. Cálculo de 1 Tile T x T e contrato temporal (3*T - 2 ciclos).
-//       2. Extremos aritméticos int8 (-128, +127, -1, 0) e acumulador int32.
-//       3. Acumulação parcial ao longo de K (sem acc_clear) e limpeza explícita.
-//       4. Multiplicação 4x4 e 8x8 com Tiling usando os arquivos .hex do
-//          Golden Model (mat_4x4_*.hex e mat_8x8x8_*.hex).
-//       5a. Matriz retangular (3x5) * (5x2) com Zero-Padding e contagem de ciclos.
-//       5b. Matriz não-múltipla (5x7) * (7x6) com Zero-Padding.
-//       6. Proteção de buffers (A e B) e comandos (acc_clear, acc_start) durante
-//          acc_busy = 1 (sobre posições ainda não consumidas + reexecução sem
-//          recarga), prioridade de acc_clear e retenção de C.
-//       7. Reset assíncrono (rst_n = 0) durante processamento ativo (acc_busy = 1),
-//          verificando cancelamento imediato, limpeza de buffers/PEs e recuperação.
-//       8a. Casos pequenos e assimétricos (1x1, 1x7 * 7x1 e 6x3 * 3x7).
-//       8b. Caso limite máximo do projeto: 32x32 * 32x32 com todos os operandos
-//           iguais a -128 (C[i][j] = +524288 em todos os 1024 elementos).
+// Escopo de Verificação (30 subtestes no total = 10 por tamanho de malha):
+//   - Instancia ARRAY_SIZE = 2 (2x2), 4 (4x4) e 8 (8x8) via accel_bfm_harness.
+//   - Emula o controlador DMA por tarefas BFM (carga de buffers locais com
+//     zero-padding, validação int8, pulsos acc_clear/acc_start, monitoramento
+//     temporal exato de 3T-2 ciclos e leitura combinacional de C).
+//   - Cobre: tile T x T, extremos int8 (-128/+127), acumulação ao longo de K,
+//     vetores .hex do Golden Model (4x4 e 8x8), matrizes retangulares e não-
+//     múltiplas, proteção de buffers/comandos em acc_busy=1, reset assíncrono
+//     durante execução ativa, casos 1x1/assimétricos e limite máximo 32x32.
 // =============================================================================
 `timescale 1ns / 1ps
 
@@ -35,42 +28,47 @@
 // tasks BFM que emulam o controlador de DMA para qualquer ARRAY_SIZE.
 // -----------------------------------------------------------------------------
 module accel_bfm_harness #(
-    parameter int ARRAY_SIZE = 4,
-    parameter int IDX_W      = $clog2(ARRAY_SIZE)
+    parameter int ARRAY_SIZE = 4,                  // Dimensão física T testada (2, 4 ou 8)
+    parameter int IDX_W      = $clog2(ARRAY_SIZE)  // Largura de índice dos buffers locais
 ) (
-    input logic clk
+    input logic clk                                // Clock compartilhado fornecido pelo TB
 );
 
-    logic                  rst_n;
-    logic                  acc_clear;
-    logic                  acc_start;
-    logic                  acc_busy;
-    logic                  acc_done;
+    // Sinais de controle e status conectados ao DUT
+    logic                  rst_n;       // Reset assíncrono ativo em nível baixo
+    logic                  acc_clear;   // Pulso de limpeza dos acumuladores C
+    logic                  acc_start;   // Pulso de disparo da onda sistólica
+    logic                  acc_busy;    // Flag de execução observada do DUT
+    logic                  acc_done;    // Pulso de conclusão observado do DUT
 
+    // Porta BFM de escrita no Buffer Local A
     logic                  buf_a_we;
     logic [IDX_W-1:0]      buf_a_row;
     logic [IDX_W-1:0]      buf_a_col;
     logic signed [7:0]     buf_a_wdata;
 
+    // Porta BFM de escrita no Buffer Local B
     logic                  buf_b_we;
     logic [IDX_W-1:0]      buf_b_row;
     logic [IDX_W-1:0]      buf_b_col;
     logic signed [7:0]     buf_b_wdata;
 
+    // Porta BFM de leitura combinacional dos acumuladores C
     logic [IDX_W-1:0]      buf_c_row;
     logic [IDX_W-1:0]      buf_c_col;
     logic signed [31:0]    buf_c_rdata;
 
     // Matrizes de trabalho no BFM (até 32x32 conforme especificação)
-    int                    mat_A [0:31][0:31];
-    int                    mat_B [0:31][0:31];
-    int                    mat_C_got [0:31][0:31];
-    int                    mat_C_exp [0:31][0:31];
+    int                    mat_A [0:31][0:31];     // Matriz de estímulo A
+    int                    mat_B [0:31][0:31];     // Matriz de estímulo B
+    int                    mat_C_got [0:31][0:31]; // Matriz resultante coletada do DUT
+    int                    mat_C_exp [0:31][0:31]; // Matriz esperada de referência
 
-    int                    total_comp_cycles;
-    int                    errors;
-    int                    subtests_passed;
-    int                    subtests_total;
+    // Contadores de ciclos e placar desta instância do harness
+    int                    total_comp_cycles;      // Total de ciclos medidos em acc_busy=1
+    int                    errors;                 // Total de erros acumulados
+    int                    subtests_passed;        // Quantidade de subtestes aprovados
+    int                    subtests_total;         // Quantidade de subtestes executados
 
     // Instância do DUT (Top-Level do Acelerador)
     systolic_accelerator #(
@@ -903,18 +901,18 @@ endmodule
 // -----------------------------------------------------------------------------
 module tb_systolic_accelerator;
 
-    logic clk;
+    logic clk; // Clock principal de 100 MHz (período = 10 ns)
     initial clk = 1'b0;
-    always #5 clk = ~clk; // Clock de 100 MHz (período = 10 ns)
+    always #5 clk = ~clk;
 
     // Instâncias para os 3 tamanhos de malha exigidos no projeto: 2x2, 4x4 e 8x8
     accel_bfm_harness #(.ARRAY_SIZE(2)) u_harness_2x2 (.clk(clk));
     accel_bfm_harness #(.ARRAY_SIZE(4)) u_harness_4x4 (.clk(clk));
     accel_bfm_harness #(.ARRAY_SIZE(8)) u_harness_8x8 (.clk(clk));
 
-    int total_errors;
-    int total_passed;
-    int total_subtests;
+    int total_errors;   // Soma total de erros nas 3 configurações
+    int total_passed;   // Soma total de subtestes aprovados
+    int total_subtests; // Soma total de subtestes executados
 
     // Watchdog global contra travamento infinito da simulação
     initial begin

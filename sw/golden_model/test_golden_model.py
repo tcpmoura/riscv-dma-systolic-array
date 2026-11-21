@@ -1,5 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# =============================================================================
+# Projeto     : RISC-V RV32I com Controlador DMA e Coprocessador Matricial
+# Etapa       : Entrega Parcial I — Planejamento, Microarquitetura e Golden Model
+# Arquivo     : test_golden_model.py
+# Professores : Igor Dantas dos Santos Miranda
+#               João Alberto Castelo Branco Oliveira
+# Grupo 4     : João Vitor Carvalho Lima
+#               Matheus Artur Macedo Bomfim
+#               Nathalia Miranda
+#               Tatiana Caetano Praxedes de Moura
+# Descrição   : Suíte de testes unitários automatizados (11 testes) para o
+#               Golden Model em golden_model.py. Valida aritmética int8/int32,
+#               onda sistólica com skew (t = i + j + k), tiling em 2x2/4x4/8x8,
+#               zero-padding em matrizes retangulares, exportação .hex, limites
+#               do projeto (1..32) e regras de layout da DMEM compartilhada.
+# =============================================================================
 """
 Suíte de Testes Automatizados do Modelo de Referência (Golden Model)
 Valida:
@@ -8,6 +24,7 @@ Valida:
 3. Particionamento em blocos (Tiling) para matrizes maiores que ARRAY_SIZE (2x2, 4x4, 8x8).
 4. Matrizes menores que ARRAY_SIZE e dimensões retangulares/não-múltiplas (Zero-Padding).
 5. Exportação de vetores .hex para uso nos testbenches Verilog/SystemVerilog e UVM.
+6. Validação de entradas inválidas, aritmética modular e layout de memória da DMEM.
 """
 
 from pathlib import Path
@@ -18,7 +35,7 @@ from copy import deepcopy
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-# Garante importação local
+# Garante importação local de golden_model.py independentemente do diretório de execução
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from golden_model import (
@@ -33,10 +50,14 @@ from golden_model import (
 )
 
 
+# -----------------------------------------------------------------------------
+# Testes Funcionais da Malha Sistólica, Tiling, Zero-Padding e Vetores .hex
+# -----------------------------------------------------------------------------
+
 def test_1_cycle_accurate_skew_wave():
     """
     Valida que um bloco 3x3 leva exatamente 3*3 - 2 = 7 ciclos e que a onda diagonal
-    ativa 1, 3, 6, 7, 6, 3, 1 PEs por ciclo (exatamente como no Slide 8 da aula!).
+    ativa 1, 3, 6, 7, 6, 3, 1 PEs por ciclo (alinhado ao modelo Output-Stationary).
     """
     A = [
         [1, 2, 3],
@@ -48,11 +69,11 @@ def test_1_cycle_accurate_skew_wave():
         [6, 5, 4],
         [3, 2, 1],
     ]
-    C_expected = matmul_reference_alg(A, B)
+    C_expected = matmul_reference_alg(A, B)                                    # Referência algébrica direta
     C_systolic, cycles, trace = systolic_tile_cycle_accurate(A, B, record_trace=True)
 
     assert cycles == 7, f"Esperado 7 ciclos para 3x3, obteve {cycles}"
-    active_wave = [step["active_pes"] for step in trace]
+    active_wave = [step["active_pes"] for step in trace]                       # PEs ativos por ciclo t
     assert active_wave == [1, 3, 6, 7, 6, 3, 1], f"Onda de PEs ativos incorreta: {active_wave}"
     assert C_systolic == C_expected, f"Resultado 3x3 incorreto: {C_systolic} != {C_expected}"
     print("[PASS] Teste 1: Execução ciclo a ciclo + Onda diagonal de Skew (1,3,6,7,6,3,1 PEs ativos em 7 ciclos)")
@@ -78,7 +99,7 @@ def test_2_signed_int8_extremes():
     for array_size in (2, 4, 8):
         res = matmul_tiled_golden(A, B, array_size=array_size)
         assert res.C == C_ref, f"Falha nos extremos int8 para malha {array_size}x{array_size}"
-    # (-128)*(-128)*4 = 16384 * 4 = +65536 (que caberia apenas em >16 bits signed, provando a necessidade do int32!)
+    # (-128)*(-128)*4 = 16384 * 4 = +65536 (exige acumulador > 16 bits signed -> int32)
     assert C_ref[0][0] == 65536, f"Esperado +65536 no acumulador int32, obteve {C_ref[0][0]}"
     print("[PASS] Teste 2: Limites extremos int8 (-128, +127) com acumulador int32 (ex.: 4*(-128)*(-128) = +65536)")
 
@@ -103,9 +124,9 @@ def test_4_non_multiple_and_rectangular_zero_padding():
     (ex.: 5x7 * 7x6 e 9x5 * 5x11) usando preenchimento automático com zeros (zero-padding).
     """
     cases = [
-        (1, 1, 1),
+        (1, 1, 1),   # Caso mínimo 1x1
         (3, 3, 3),   # Menor que 4x4 e 8x8
-        (3, 4, 2),   # Retangular pequena (igual ao exemplo da aula!)
+        (3, 4, 2),   # Retangular pequena
         (5, 7, 6),   # Não-múltipla de 2, 4 e 8
         (9, 5, 11),  # Maior em M e N, menor em K para 8x8
     ]
@@ -122,10 +143,11 @@ def test_4_non_multiple_and_rectangular_zero_padding():
 
 
 def test_5_export_hex_vectors():
-    """Compara cada palavra, sinal e ordem row-major com valores fixos."""
+    """Compara cada palavra, sinal e ordem row-major dos arquivos .hex com valores fixos."""
     A = [[-128, -1, 127], [0, 2, -3]]
     B = [[1, -1], [2, 3], [-4, 5]]
     C = [[-638, 760], [16, -9]]
+    # Palavras esperadas (32 bits por elemento: int8 nos bits [7:0] para A/B; int32 em C)
     expected = {
         "A": ["00000080", "000000FF", "0000007F", "00000000", "00000002", "000000FD"],
         "B": ["00000001", "000000FF", "00000002", "00000003", "000000FC", "00000005"],
@@ -139,7 +161,7 @@ def test_5_export_hex_vectors():
 
 
 def test_6_known_answers_and_input_preservation():
-    # Valores esperados fixos, sem chamar a referencia para produzi-los.
+    """Confere resultados fixos conhecidos (incluindo identidade e zero) sem mutar A e B."""
     cases = [
         ([[1, 2], [3, 4]], [[5, 6], [7, 8]], [[19, 22], [43, 50]]),
         ([[-128, -1, 127], [0, 2, -3]], [[1, -1], [2, 3], [-4, 5]],
@@ -148,7 +170,7 @@ def test_6_known_answers_and_input_preservation():
         ([[0, 0]], [[-128], [127]], [[0]]),
     ]
     for A, B, expected in cases:
-        original = deepcopy((A, B))
+        original = deepcopy((A, B))  # Cópia profunda para garantir imutabilidade das entradas
         assert matmul_reference_alg(A, B) == expected
         for size in (2, 4, 8):
             assert matmul_tiled_golden(A, B, size).C == expected
@@ -156,7 +178,12 @@ def test_6_known_answers_and_input_preservation():
     print("[PASS] Teste 6: Respostas fixas, identidade, zero e preservacao das entradas")
 
 
+# -----------------------------------------------------------------------------
+# Testes de Validação de Entradas, Aritmética Modular, Métricas e Layout DMEM
+# -----------------------------------------------------------------------------
+
 def expect_error(kind, function, *args):
+    """Auxiliar: exige que function(*args) lance exceção do tipo kind com mensagem não vazia."""
     try:
         function(*args)
     except kind as error:
@@ -166,6 +193,7 @@ def expect_error(kind, function, *args):
 
 
 def test_7_invalid_inputs():
+    """Verifica rejeição de matrizes vazias, irregulares, tipos inválidos e ARRAY_SIZE inválido."""
     bad_cases = [
         ([], [[1]], ValueError), ([[1]], [], ValueError),
         ([[]], [[1]], ValueError), ([[1]], [[]], ValueError),
@@ -193,11 +221,12 @@ def test_7_invalid_inputs():
 
 
 def test_8_modular_arithmetic_and_accumulation():
+    """Valida wrap-around em complemento de 2 (int8/int32) e acumulação modular nos PEs."""
     assert to_int8(128) == -128 and to_int8(255) == -1
     assert to_int8(-129) == 127 and to_int8(256) == 0
     assert to_int32(2147483648) == -2147483648
     assert to_int32(-2147483649) == 2147483647
-    initial = [[2147483647]]
+    initial = [[2147483647]]  # Máximo positivo int32 (0x7FFFFFFF)
     result, _, _ = systolic_tile_cycle_accurate([[1]], [[1]], initial)
     assert result == [[-2147483648]] and initial == [[2147483647]]
     result, _, _ = systolic_tile_cycle_accurate([[-1]], [[1]], [[-2147483648]])
@@ -206,7 +235,7 @@ def test_8_modular_arithmetic_and_accumulation():
 
 
 def test_9_ideal_metrics():
-    # M=3, K=5, N=2: conta palavras validas, sem leituras do zero-padding.
+    """Valida ciclos ideais da malha e contagem exata de palavras válidas nas bordas (3x5 * 5x2)."""
     A, B = [[1] * 5 for _ in range(3)], [[1] * 2 for _ in range(5)]
     for size, cycles, reads in [(2, 24, 35), (4, 20, 25), (8, 22, 25)]:
         result = matmul_tiled_golden(A, B, size)
@@ -219,9 +248,10 @@ def test_9_ideal_metrics():
 
 
 def test_10_project_limits():
+    """Valida o pior caso 32x32 com -128 (+524288) e rejeição de dimensões > 32 ou fora de int8."""
     A = [[-128] * 32 for _ in range(32)]
     B = [[-128] * 32 for _ in range(32)]
-    expected = [[524288] * 32 for _ in range(32)]
+    expected = [[524288] * 32 for _ in range(32)]  # 32 * (-128) * (-128) = +524288
     assert matmul_reference_alg(A, B) == expected
     for size in (2, 4, 8):
         assert matmul_tiled_golden(A, B, size).C == expected
@@ -244,9 +274,10 @@ def test_10_project_limits():
 
 
 def test_11_memory_layout():
+    """Valida regras de alinhamento em 4 bytes, limite de 16 KB da DMEM e ausência de sobreposição."""
     validate_memory_layout(32, 32, 32)
     validate_memory_layout(1, 1, 1, 0, 4, 0x3FFC)
-    validate_memory_layout(2, 2, 2, 32, 0, 16)  # Regioes adjacentes, fora de ordem.
+    validate_memory_layout(2, 2, 2, 32, 0, 16)  # Regiões adjacentes, fora de ordem
     for bases in [(1, 8, 16), (-4, 8, 16), (0x4000, 8, 16),
                   (0, 0, 16), (0, 16, 16), (0, 16, 0)]:
         expect_error(ValueError, validate_memory_layout, 1, 1, 1, *bases)
@@ -258,6 +289,7 @@ def test_11_memory_layout():
 
 
 def main():
+    """Executa sequencialmente todos os testes unitários do Golden Model (test_1 .. test_11)."""
     if not __debug__:
         raise RuntimeError("Execute sem -O: os testes dependem de assertions.")
     tests = [value for name, value in sorted(globals().items()) if name.startswith("test_") and callable(value)]

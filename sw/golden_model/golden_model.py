@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# =============================================================================
+# Projeto     : RISC-V RV32I com Controlador DMA e Coprocessador Matricial
+# Etapa       : Entrega Parcial I — Planejamento, Microarquitetura e Golden Model
+# Arquivo     : golden_model.py
+# Professores : Igor Dantas dos Santos Miranda
+#               João Alberto Castelo Branco Oliveira
+# Grupo 4     : João Vitor Carvalho Lima
+#               Matheus Artur Macedo Bomfim
+#               Nathalia Miranda
+#               Tatiana Caetano Praxedes de Moura
+# Descrição   : Modelo de referência (Golden Model) em Python para o
+#               coprocessador Systolic Array parametrizável (2x2, 4x4, 8x8)
+#               e estratégia de particionamento em blocos (tiling) do DMA.
+#               Fornece referência funcional bit-exata (int8 -> int32),
+#               validação de layout de memória, métricas ideais da malha e
+#               exportação de vetores .hex para os testbenches RTL e UVM.
+# =============================================================================
 """
 Modelo de Referência (Golden Model) — Coprocessador Systolic Array + DMA
 Projeto Final: RISC-V RV32I + Controlador DMA + Systolic Array Parametrizável
@@ -18,13 +35,13 @@ Características implementadas (alinhadas com a especificação de hardware):
    - Suporte a matrizes maiores que ARRAY_SIZE (tiling)
    - Suporte a matrizes menores ou com dimensões não-múltiplas de ARRAY_SIZE
      via preenchimento automático com zeros (zero-padding) nos buffers locais
-4. Referencia e metricas:
-   - matmul_reference_alg e a referencia funcional principal para RTL/UVM.
-   - O modelo sistolico estuda a arquitetura proposta, sem temporizacao AXI4,
-     arbitragem, espera de memoria ou ciclos de controle do DMA.
-   - Ciclos ideais da malha e contagem de palavras validas, sem leituras extras
-     nas bordas, com um elemento por palavra. Nao preve PERF_TOTAL_CYCLES,
-     frequencia, area ou energia. Nao mede o desempenho da CPU real.
+4. Referência e métricas:
+   - matmul_reference_alg é a referência funcional principal para RTL/UVM.
+   - O modelo sistólico estuda a arquitetura proposta, sem temporização AXI4,
+     arbitragem, espera de memória ou ciclos de controle do DMA.
+   - Ciclos ideais da malha e contagem de palavras válidas, sem leituras extras
+     nas bordas, com um elemento por palavra. Não prevê PERF_TOTAL_CYCLES,
+     frequência, área ou energia. Não mede o desempenho da CPU real.
 """
 
 from dataclasses import dataclass
@@ -34,9 +51,10 @@ import argparse
 import random
 import sys
 
-MAX_DIM = 32
-ARRAY_SIZES = (2, 4, 8)
-DMEM_BYTES = 0x4000
+# Constantes arquiteturais alinhadas à especificação de hardware
+MAX_DIM = 32               # Dimensão máxima suportada para M, K e N (1..32)
+ARRAY_SIZES = (2, 4, 8)    # Tamanhos físicos T suportados pela malha sistólica (T x T)
+DMEM_BYTES = 0x4000        # Capacidade total da DMEM compartilhada (16 KB = 16384 bytes)
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -70,16 +88,16 @@ def to_hex32_word(val: int, is_int8_input: bool = False) -> str:
 
 
 # =============================================================================
-# 2. Modelo Algébrico Direto (Referência Matemática de Software)
+# 2. Validadores e Modelo Algébrico Direto (Referência Matemática de Software)
 # =============================================================================
 
 def validate_matrix(matrix, name: str) -> Tuple[int, int]:
-    """Valida estrutura e tipos; faixa numerica e dimensoes em validadores proprios."""
+    """Valida estrutura retangular e tipos inteiros (sem bool); retorna (linhas, colunas)."""
     if not isinstance(matrix, (list, tuple)):
         raise TypeError(f"{name} deve ser lista ou tupla de linhas.")
     if not matrix:
         raise ValueError(f"{name} nao pode ser vazia.")
-    width = None
+    width = None  # Largura esperada de todas as linhas (extraída da primeira linha)
     for row in matrix:
         if not isinstance(row, (list, tuple)):
             raise TypeError(f"Cada linha de {name} deve ser lista ou tupla.")
@@ -95,6 +113,7 @@ def validate_matrix(matrix, name: str) -> Tuple[int, int]:
 
 
 def validate_positive_integer(value, name: str) -> None:
+    """Garante que o parâmetro seja inteiro estrito (>= 1), rejeitando booleanos."""
     if type(value) is not int:
         raise TypeError(f"{name} deve ser inteiro, sem bool.")
     if value < 1:
@@ -102,6 +121,7 @@ def validate_positive_integer(value, name: str) -> None:
 
 
 def validate_range(matrix, name, minimum, maximum):
+    """Garante que todos os elementos da matriz estejam dentro do intervalo [minimum, maximum]."""
     for i, row in enumerate(matrix):
         for j, value in enumerate(row):
             if not minimum <= value <= maximum:
@@ -109,23 +129,25 @@ def validate_range(matrix, name, minimum, maximum):
 
 
 def validate_dimension(value, name):
+    """Valida uma dimensão matricial contra os limites do projeto (1 <= dim <= MAX_DIM)."""
     validate_positive_integer(value, name)
     if value > MAX_DIM:
         raise ValueError(f"{name} deve estar entre 1 e {MAX_DIM}.")
 
 
 def validate_memory_layout(M, K, N, base_a=0x1000, base_b=0x2000, base_c=0x3000):
-    """Valida configuracao de memoria; nao simula registradores nem DMA.
+    """Valida alinhamento, limites da DMEM (16 KB) e não-sobreposição das regiões A, B e C.
 
-    Intervalos [base, fim) precisam caber na DMEM e nao se sobrepor.
+    Não simula registradores MMIO nem DMA; reflete exatamente as regras de validação
+    de configuração adotadas no hardware para os intervalos [base, fim).
     """
     for name, value in (("M", M), ("K", K), ("N", N)):
         validate_dimension(value, name)
-    intervals = []
+    intervals = []  # Lista de tuplas (base, fim_exclusivo, nome) para checar sobreposição
     for name, base, count in (("A", base_a, M*K), ("B", base_b, K*N), ("C", base_c, M*N)):
         if type(base) is not int:
             raise TypeError(f"Base de {name} deve ser inteira, sem bool.")
-        end = base + count * 4
+        end = base + count * 4  # Endereço final exclusivo (cada elemento ocupa 1 palavra de 4 bytes)
         if base < 0 or base % 4 or end > DMEM_BYTES:
             raise ValueError(f"Regiao de {name} desalinhada ou fora da DMEM.")
         intervals.append((base, end, name))
@@ -136,6 +158,7 @@ def validate_memory_layout(M, K, N, base_a=0x1000, base_b=0x2000, base_c=0x3000)
 
 
 def validate_operands(A, B) -> Tuple[int, int, int]:
+    """Valida compatibilidade (MxK * KxN), limites (1..32) e faixa int8 (-128..+127) de A e B."""
     M, K = validate_matrix(A, "A")
     rows_b, N = validate_matrix(B, "B")
     if rows_b != K:
@@ -148,17 +171,17 @@ def validate_operands(A, B) -> Tuple[int, int, int]:
 
 
 def matmul_reference_alg(A: List[List[int]], B: List[List[int]]) -> List[List[int]]:
-    """Referencia funcional principal, independente de tiling e skew.
+    """Referência funcional principal (C = A x B), independente de tiling e skew.
 
-    Soma em precisao ilimitada; converte o resultado final para int32 modular.
-    Equivale a acumular modulo 2**32 a cada MAC, sem saturacao.
+    Soma em precisão ilimitada e converte o resultado final para int32 modular,
+    equivalente à acumulação módulo 2**32 a cada MAC sem saturação.
     """
     M, K, N = validate_operands(A, B)
 
-    C = [[0 for _ in range(N)] for _ in range(M)]
+    C = [[0 for _ in range(N)] for _ in range(M)]  # Matriz de saída M x N (int32)
     for i in range(M):
         for j in range(N):
-            acc = 0
+            acc = 0  # Acumulador do produto interno da posição C[i][j]
             for k in range(K):
                 prod = to_int8(A[i][k]) * to_int8(B[k][j])
                 acc += prod
@@ -196,23 +219,23 @@ def systolic_tile_cycle_accurate(
     if acc_init is not None:
         validate_range(acc_init, "acc_init", -(2**31), 2**31 - 1)
 
-    # Registradores internos de cada PE(i, j)
+    # Acumuladores estacionários int32 de cada PE(i, j) (preservam somas parciais de tk anterior)
     acc = [
         [to_int32(acc_init[i][j]) if acc_init else 0 for j in range(T)]
         for i in range(T)
     ]
-    # Registradores de passagem horizontal (a_reg) e vertical (b_reg) entre PEs
+    # Registradores de passagem horizontal (a_reg) e vertical (b_reg) entre PEs vizinhos
     a_reg = [[0 for _ in range(T)] for _ in range(T)]
     b_reg = [[0 for _ in range(T)] for _ in range(T)]
 
-    total_cycles = 3 * T - 2
-    trace = []
+    total_cycles = 3 * T - 2  # Duração fixa da onda sistólica para um tile T x T
+    trace = []                # Histórico opcional por ciclo (PEs ativos e snapshot de acc)
 
     for t in range(total_cycles):
-        # 1. Determina quais valores entram nas bordas esquerda (A) e superior (B) no ciclo t
-        # Na linha i, o elemento k = t - i entra se 0 <= t - i < T; caso contrário entra 0 (bolha de skew)
-        a_in = [[0 for _ in range(T)] for _ in range(T)]
-        b_in = [[0 for _ in range(T)] for _ in range(T)]
+        # 1. Determina quais valores entram nas bordas esquerda (A) e superior (B) no ciclo t:
+        #    na linha i, k_a = t - i entra se 0 <= k_a < T; caso contrário entra 0 (bolha de skew).
+        a_in = [[0 for _ in range(T)] for _ in range(T)]  # Entradas combinacionais A de cada PE no ciclo t
+        b_in = [[0 for _ in range(T)] for _ in range(T)]  # Entradas combinacionais B de cada PE no ciclo t
 
         for i in range(T):
             k_a = t - i
@@ -227,7 +250,7 @@ def systolic_tile_cycle_accurate(
                 b_in[i][j] = b_reg[i - 1][j]
 
         # 2. Atualização síncrona de todos os T x T PEs em paralelo (borda de subida do clock)
-        active_pes = 0
+        active_pes = 0  # Quantidade de PEs processando um par válido (a_ik, b_kj) neste ciclo
         for i in range(T):
             for j in range(T):
                 # Verifica se o par (a_ik, b_kj) válido está cruzando o PE(i,j) neste ciclo t = i + j + k
@@ -250,26 +273,26 @@ def systolic_tile_cycle_accurate(
 
 
 # =============================================================================
-# 4. Simulacao arquitetural com tiling (sem temporizacao DMA/AXI4)
+# 4. Simulação Arquitetural com Tiling (sem temporização DMA/AXI4)
 # =============================================================================
 
 @dataclass
 class GoldenSimulationResult:
-    """Metricas ideais da estrategia modelada; nao sao medidas do RTL."""
-    C: List[List[int]]
-    M: int
-    K: int
-    N: int
-    array_size: int
-    num_tile_rows: int
-    num_tile_cols: int
-    num_tile_k: int
-    total_tile_ops: int
-    perf_comp_cycles: int
-    perf_mem_reads: int
-    perf_mem_writes: int
-    scalar_mem_reads: int
-    memory_read_reduction_factor: float
+    """Agrupa a matriz resultante C e as métricas ideais da estratégia de tiling modelada."""
+    C: List[List[int]]                  # Matriz de saída C (M x N, elementos int32)
+    M: int                              # Linhas de A e C
+    K: int                              # Dimensão interna compartilhada (colunas de A / linhas de B)
+    N: int                              # Colunas de B e C
+    array_size: int                     # Dimensão física T da malha simulada (2, 4 ou 8)
+    num_tile_rows: int                  # Número de blocos em M: ceil(M / T)
+    num_tile_cols: int                  # Número de blocos em N: ceil(N / T)
+    num_tile_k: int                     # Número de sub-blocos em K: ceil(K / T)
+    total_tile_ops: int                 # Total de execuções da malha (num_tile_rows * num_tile_cols * num_tile_k)
+    perf_comp_cycles: int               # Ciclos ideais de cálculo na malha: total_tile_ops * (3*T - 2)
+    perf_mem_reads: int                 # Total de palavras válidas lidas da DMEM (sem leituras de padding)
+    perf_mem_writes: int                # Total de palavras válidas escritas em C (M * N)
+    scalar_mem_reads: int               # Leituras em abordagem escalar sem reuso (2 * M * N * K)
+    memory_read_reduction_factor: float # Fator de redução de leituras na RAM (scalar_mem_reads / perf_mem_reads)
 
 
 def extract_tile_with_zero_padding(
@@ -287,8 +310,8 @@ def extract_tile_with_zero_padding(
       preenche o buffer local com 0 (zero-padding).
     Retorna o tile T x T e o número de leituras reais na memória.
     """
-    tile = [[0 for _ in range(array_size)] for _ in range(array_size)]
-    valid_reads = 0
+    tile = [[0 for _ in range(array_size)] for _ in range(array_size)]  # Buffer local T x T
+    valid_reads = 0                                                     # Palavras reais lidas da DMEM
     for i in range(array_size):
         r = row_start + i
         for j in range(array_size):
@@ -306,11 +329,11 @@ def matmul_tiled_golden(
     B: List[List[int]],
     array_size: int
 ) -> GoldenSimulationResult:
-    """Simula calculo e ordem dos blocos, sem temporizacao DMA/memoria/AXI4.
+    """Simula cálculo e ordem dos blocos (ti, tj, tk), sem temporização DMA/memória/AXI4.
 
-    Os contadores pressupõem zero-padding local e uma escrita por elemento C.
-    Dimensoes e operandos sao validados. Enderecos sao verificados separadamente
-    por validate_memory_layout, pois esta funcao recebe matrizes, nao enderecos.
+    Os contadores pressupõem zero-padding local e uma única escrita por elemento de C.
+    Dimensões e operandos são validados aqui; endereços são verificados separadamente
+    por validate_memory_layout, pois esta função recebe matrizes, não endereços.
     """
     validate_positive_integer(array_size, "ARRAY_SIZE")
     if array_size not in ARRAY_SIZES:
@@ -323,25 +346,25 @@ def matmul_tiled_golden(
     num_tile_cols = (N + T - 1) // T
     num_tile_k    = (K + T - 1) // T
 
-    C = [[0 for _ in range(N)] for _ in range(M)]
+    C = [[0 for _ in range(N)] for _ in range(M)]  # Matriz de saída reconstruída bloco a bloco
 
-    perf_comp_cycles = 0
-    perf_mem_reads   = 0
-    perf_mem_writes  = 0
-    total_tile_ops   = 0
+    perf_comp_cycles = 0  # Acumulador de ciclos de computação da malha (equivalente a PERF_COMP_CYCLES)
+    perf_mem_reads   = 0  # Acumulador de leituras válidas na DMEM (equivalente a PERF_MEM_READS)
+    perf_mem_writes  = 0  # Acumulador de escritas válidas de C na DMEM
+    total_tile_ops   = 0  # Total de disparos de acc_start na malha sistólica
 
     # Laços externos de Tiling controlados pela FSM do DMA: (ti, tj, tk)
     for ti in range(num_tile_rows):
-        row_base = ti * T
+        row_base = ti * T  # Linha global inicial do bloco C_{ti, tj}
         for tj in range(num_tile_cols):
-            col_base = tj * T
+            col_base = tj * T  # Coluna global inicial do bloco C_{ti, tj}
 
             # Início de um novo bloco C_{ti, tj}: DMA aciona pulso acc_clear = 1
             acc_tile = [[0 for _ in range(T)] for _ in range(T)]
 
             # Laço interno de acumulação parcial ao longo da dimensão comum K
             for tk in range(num_tile_k):
-                k_base = tk * T
+                k_base = tk * T  # Deslocamento global ao longo de K
 
                 # 1. DMA lê o bloco A_{ti, tk} e carrega no Buffer Local A
                 tile_A, reads_A = extract_tile_with_zero_padding(
@@ -369,7 +392,7 @@ def matmul_tiled_golden(
                         C[r][c] = acc_tile[i][j]
                         perf_mem_writes += 1
 
-    scalar_reads = 2 * M * N * K
+    scalar_reads = 2 * M * N * K  # Referência escalar sem reuso de dados em buffers locais
     reduction = (scalar_reads / perf_mem_reads) if perf_mem_reads > 0 else 1.0
 
     return GoldenSimulationResult(
@@ -410,7 +433,7 @@ def export_test_vectors_hex(
         raise ValueError("C deve ter M linhas e N colunas.")
     validate_range(C, "C", -(2**31), 2**31 - 1)
     output_dir.mkdir(parents=True, exist_ok=True)
-    files = {}
+    files = {}  # Dicionário de retorno mapeando "A", "B" e "C" aos caminhos criados
 
     path_a = output_dir / f"{prefix}_A.hex"
     path_b = output_dir / f"{prefix}_B.hex"
@@ -442,6 +465,7 @@ def export_test_vectors_hex(
 # =============================================================================
 
 def generate_random_matrix(rows: int, cols: int, seed: int) -> List[List[int]]:
+    """Gera matriz determinística (rows x cols) com valores int8 (-128..+127) a partir de seed."""
     validate_dimension(rows, "rows")
     validate_dimension(cols, "cols")
     rng = random.Random(seed)
@@ -449,8 +473,9 @@ def generate_random_matrix(rows: int, cols: int, seed: int) -> List[List[int]]:
 
 
 def print_matrix(name: str, mat: List[List[int]], max_display: int = 8) -> None:
-    R = len(mat)
-    C = len(mat[0]) if R > 0 else 0
+    """Imprime uma matriz formatada no terminal, truncando a exibição acima de max_display."""
+    R = len(mat)                     # Quantidade de linhas da matriz
+    C = len(mat[0]) if R > 0 else 0  # Quantidade de colunas da matriz
     print(f"\nMatriz {name} ({R}x{C}):")
     for i in range(min(R, max_display)):
         row_str = " ".join(f"{mat[i][j]:6d}" for j in range(min(C, max_display)))
@@ -462,6 +487,7 @@ def print_matrix(name: str, mat: List[List[int]], max_display: int = 8) -> None:
 
 
 def main():
+    """Executa comparação CLI entre malhas 2x2, 4x4 e 8x8 e exporta vetores .hex opcionais."""
     parser = argparse.ArgumentParser(
         description="Golden Model — Multiplicação Matricial por Blocos (Tiling) em Systolic Array"
     )
