@@ -75,7 +75,7 @@ O testbench instancia quatro cenários físicos por meio de `subsys_bfm_harness`
 
 *(Nota metodológica: nos testes `32×32`, a carga inicial de $A$/$B$ e o pré-preenchimento de $C$ utilizam acesso hierárquico `fast_load_matrices_dmem` apenas para preparação da memória; toda a movimentação realizada pelo DMA — leitura de $A$/$B$, processamento no acelerador e escrita de $C$ — ocorre integralmente pelas interfaces AXI4 sob monitoramento contínuo.)*
 
-## Integridade e Registro de Contribuições
+## Integridade e Escopo da Entrega Parcial III
 
 - **Integridade de entradas e saídas:** antes de cada multiplicação verificada por `verify_c_in_dmem`, o testbench salva o snapshot das palavras completas de $A$/$B$ (incluindo bits `[31:8]`) e confere sua preservação integral ao final, em conjunto com a contagem de exatamente 1 escrita por elemento válido de $C$ e 0 escritas fora da região de $C$.
-- **Contribuições:** a versão consolidada mantém a arquitetura AXI4 da contribuição de Tatiana e incorpora os vetores `32×32` variados (`seed=2026`) e cenários de verificação de limites originados na contribuição de Matheus (Rev3). A adaptação desses materiais ao contrato AXI4 global de 16 KB, a regressão unificada e a integração final foram realizadas por Tatiana, com assistência de ferramentas de IA.
+- **Escopo consolidado:** a Entrega Parcial III possui a arquitetura AXI4 e incorpora vetores `32×32` variados (`seed=2026`, `1.024` resultados) e cenários de verificação de limites adaptados ao contrato global de 16 KB da DMEM.

@@ -15,17 +15,15 @@
 #               (positivos, negativos e zeros, seed=2026) usando o Golden Model
 #               oficial (golden_model.py).
 #
-# Origem e adaptação do cenário:
-#   - Algoritmo de geração (random.Random(2026), A[32x32] seguida de B[32x32] em
-#     [-128, 127], row-major) originado na contribuição de Matheus Artur Macedo
-#     Bomfim (Entrega Parcial III — Rev3).
-#   - Conversão explícita para o formato oficial da base AXI4: cada elemento int8
-#     de A e B é armazenado no byte inferior [7:0] de uma palavra de 32 bits
-#     (8 dígitos hex, ex.: 000000BC para -68), preservando integralmente o valor
-#     em complemento de dois de 8 bits; cada elemento int32 de C é armazenado em
-#     32 bits (8 dígitos hex em complemento de dois).
-#   - Validação cruzada: matriz C gerada e conferida pelo golden_model.py oficial
-#     (referência algébrica e simulação por tiles para ARRAY_SIZE = 2, 4 e 8).
+# Formato e validação do cenário:
+#   - Geração determinística com random.Random(2026), A[32x32] seguida de
+#     B[32x32] em [-128, 127] (row-major).
+#   - Representação oficial da base AXI4: cada elemento int8 de A e B ocupa o
+#     byte inferior [7:0] de uma palavra de 32 bits (8 dígitos hex, ex.:
+#     000000BC para -68), preservando integralmente o valor em complemento de
+#     dois de 8 bits; cada elemento int32 de C ocupa 32 bits (8 dígitos hex).
+#   - Matriz C gerada e conferida pelo golden_model.py oficial (referência
+#     algébrica e simulação por tiles para ARRAY_SIZE = 2, 4 e 8).
 # =============================================================================
 
 import argparse

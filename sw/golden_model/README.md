@@ -70,9 +70,8 @@ O script [`generate_32x32_vectors.py`](generate_32x32_vectors.py) gera e confere
 vetores oficiais `test_vectors/mat_32x32_varied_{A,B,C_expected}.hex` (`1.024`
 palavras de 32 bits cada) utilizando exclusivamente `golden_model.py` como referência
 oficial única. O cenário (`M=K=N=32`, `random.Random(2026)` sequencial em `[-128, 127]`)
-tem origem na contribuição de Matheus Artur Macedo Bomfim (Entrega Parcial III — Rev3),
-com conversão explícita de `A`/`B` de 2 dígitos hex para palavras de 32 bits no formato
-da base AXI4 (`000000XX`, preservando o byte `int8` com sinal em `[7:0]`).
+armazena cada elemento `int8` de `A` e `B` no byte inferior `[7:0]` de uma palavra de
+32 bits no formato da base AXI4 (`000000XX`), preservando integralmente o sinal.
 
 Para gerar ou conferir os vetores explicitamente:
 

@@ -97,7 +97,7 @@ O núcleo existente está em [`rv32i/rv32i_core.v`](rv32i/rv32i_core.v). Sua int
 
 | Sinal | Direção (ref. CPU) | Largura | Descrição Funcional |
 | :--- | :---: | :---: | :--- |
-| `clk` | Entrada | 1 bit | Relógio principal do sistema (borda de subida ativa). |
+| `clk` | Entrada | 1 bit | Clock principal do sistema (borda de subida ativa). |
 | `rst_n` | Entrada | 1 bit | Reset global assíncrono, ativo em nível baixo (`0`). |
 | `dmem_valid` | Saída | 1 bit | Indica que a CPU está solicitando uma leitura (`LW/LH/LB`) ou escrita (`SW/SH/SB`). |
 | `dmem_ready` | Entrada | 1 bit | Indica resposta disponível para concluir a solicitação da CPU; dados/erro válidos nessa mesma borda. A ponte deve ter recebido a resposta AXI4 correspondente. |
@@ -349,9 +349,9 @@ A verificação cobre: vetores HEX do Golden Model (`4×4`, `8×8` e `32×32` va
 - **Evidência Icarus Verilog 12.0:** regressão completa `4/4 etapas PASS` (`12/12` Golden Model, `30/30` Acelerador, **`44/44 PASS` | `0 erros`** no subsistema integrado em [`sim_iverilog.log`](tb/unit_dma_mem_acc/sim_iverilog.log) e [`logs_regressao/`](logs_regressao/)).
 - **Evidência Cadence Xcelium 24.09-s013:** regressão completa `4/4 etapas PASS`, `0 errors, 0 warnings` na compilação de todos os módulos e **`44/44 PASS` | `0 erros`** em [`sim_xcelium.log`](tb/unit_dma_mem_acc/sim_xcelium.log) (log histórico anterior preservado em [`historico_sim_xcelium_pre_consolidacao_38_38.log`](tb/unit_dma_mem_acc/historico_sim_xcelium_pre_consolidacao_38_38.log)).
 
-### Registro de Contribuições (Entrega Parcial III Consolidada)
+### Resumo da Consolidação (Entrega Parcial III)
 
-A versão consolidada mantém a arquitetura AXI4 da contribuição de Tatiana e incorpora vetores `32×32` variados (`seed=2026`, `1.024` resultados) e cenários de verificação de limites originados na contribuição de Matheus. A adaptação desses materiais ao testbench AXI4, a regressão unificada e a integração final foram realizadas por Tatiana, com assistência de ferramentas de IA.
+A Entrega Parcial III possui a arquitetura AXI4 e incorpora vetores `32×32` variados (`seed=2026`, `1.024` resultados) e cenários de verificação de limites.
 
 ## 9. Organização e próximos passos
 
