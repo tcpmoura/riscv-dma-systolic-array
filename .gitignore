@@ -13,6 +13,9 @@ xcelium.d/
 INCA_libs/
 *.log
 !tb/unit_accelerator/sim_*.log
+!tb/unit_dma_mem_acc/sim_*.log
+!tb/unit_dma_mem_acc/historico_*.log
+!logs_regressao/*.log
 *.history
 .simvision/
 *.diag

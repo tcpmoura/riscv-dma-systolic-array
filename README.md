@@ -1,12 +1,12 @@
 # RISC-V com DMA e acelerador de multiplicação matricial
 
-**Entregas Parciais I e II — Planejamento, microarquitetura, modelo de referência, RTL do acelerador e testes unitários**
+**Entregas Parciais I, II e III — Planejamento, modelo de referência, RTL do acelerador, DMA, barramento AXI4, memória compartilhada e verificação integrada sem CPU**
 
 ## 1. Objetivo
 
 O projeto calcula C = A × B, com A de dimensão M×K, B de dimensão K×N e C de dimensão M×N. A CPU configura a operação; o DMA busca os dados e grava o resultado; o acelerador realiza as multiplicações e somas. Após o início, a CPU não transfere elementos por software.
 
-Neste documento apresentamos a arquitetura proposta, o mapa de memória, as interfaces, o modelo de referência em Python (seção 8.a do [enunciado](Projeto%20Final%20RISCV%20DMA%20Systolic%20Array.pdf)) e o RTL do acelerador sistólico com sua verificação unitária em SystemVerilog (seção 8.b do enunciado). O processador existente está em `rv32i/`, o acelerador em `rtl/accelerator/` e o testbench unitário em `tb/unit_accelerator/`. O controlador DMA, a memória compartilhada AXI4, o firmware e o UVM integrado serão desenvolvidos nas próximas entregas.
+Neste repositório apresentamos a especificação arquitetural e o modelo de referência em Python (Entrega I — seção 8.a do [enunciado](Projeto%20Final%20RISCV%20DMA%20Systolic%20Array.pdf)), o RTL do acelerador sistólico com verificação unitária (Entrega II — seção 8.b) e o RTL completo do controlador de DMA, interconexão AXI4 e memória compartilhada com testbench integrado sem CPU (Entrega III — seção 8.c). A ponte AXI4 da CPU, o firmware RISC-V e o ambiente UVM completo serão finalizados na Entrega IV.
 
 ## 2. Arquitetura proposta
 
@@ -290,18 +290,87 @@ Versão em PDF para impressão: [diagrama temporal ilustrativo em PDF](docs/Wave
 
 ![Diagrama temporal ilustrativo do acelerador sistólico](docs/Waveform_Acelerador_Entrega_2.png)
 
-## 8. Organização e próximos passos
+## 8. RTL do DMA, Barramento AXI4 e Memória Compartilhada (Entrega Parcial III)
 
-| Diretório | Conteúdo atual ou previsto |
+A infraestrutura de movimentação de dados e memória foi implementada em Verilog-2001 (estilo voltado à síntese, ainda sem validação de síntese lógica no Cadence Genus nesta entrega) e validada em conjunto com o acelerador da Entrega II no ambiente [`tb/unit_dma_mem_acc/`](tb/unit_dma_mem_acc/README.md). Relatório completo em [`docs/Especificacao_Entrega_Parcial_3.pdf`](docs/Especificacao_Entrega_Parcial_3.pdf).
+
+### Módulos Implementados
+
+| Módulo | Arquivo | Descrição |
+| :--- | :--- | :--- |
+| `axi4_dmem` | [`rtl/memory/axi4_dmem.v`](rtl/memory/axi4_dmem.v) | Memória compartilhada de 16 KB (`4096 × 32b`), interface escrava AXI4 para o subconjunto do projeto (palavras alinhadas de 32 bits, `SIZE=3'b010`, rajadas `INCR`, `wstrb` por byte, `LATENCY` parametrizável, bloqueio de escrita quando `AW` é inválido e resposta `SLVERR` em erro de faixa/alinhamento ou `WLAST` inconsistente). O bloco `initial` que zera a memória está protegido por `synthesis translate_off/on` e representa comportamento exclusivo do modelo de simulação. |
+| `axi4_interconnect` | [`rtl/bus/axi4_interconnect.v`](rtl/bus/axi4_interconnect.v) | Matriz AXI4 (`M0` = TB/CPU, `M1` = DMA $\rightarrow$ `S0` = DMEM, `S1` = MMIO DMA) com transações serializadas (1 transação ativa por vez), prioridade fixa não preemptiva para o DMA, decodificação completa de faixas e respondedor interno `DECERR`. |
+| `dma_controller` | [`rtl/dma/dma_controller.v`](rtl/dma/dma_controller.v) | Controlador DMA autônomo: escravo MMIO (`0x4000_0000..002C` com `W1C` e proteção em `BUSY=1`), validador prévio de configuração, mestre AXI4 (`32b`, `INCR`) com quebra automática em fronteiras de 4 KB, laços de *tiling* `(ti, tj, tk)`, *zero-padding* local e abortamento seguro por `SOFT_RST` ou erro AXI4 (`RRESP`/`BRESP`). |
+| `dma_mem_acc_subsys` | [`rtl/top/dma_mem_acc_subsys.v`](rtl/top/dma_mem_acc_subsys.v) | Top-level de integração sem CPU (`ARRAY_SIZE = 2, 4, 8` e `DMEM_LATENCY >= 1`). |
+
+### Diagramas Esquemáticos e Formas de Onda (Entrega III)
+
+- Subsistema RTL implementado: [Arquitetura_Subsistema_Entrega3.pdf](docs/Arquitetura_Subsistema_Entrega3.pdf) | [PNG](docs/Arquitetura_Subsistema_Entrega3.png)
+- Máquina de Estados Finitos do DMA: [FSM_Controlador_DMA.pdf](docs/FSM_Controlador_DMA.pdf) | [PNG](docs/FSM_Controlador_DMA.png)
+- Captura real no Cadence SimVision (Teste 1, malha 2×2, `630 ns – 1480 ns`): [SimVision_Waveform_DMA_Teste1_2x2.pdf](docs/SimVision_Waveform_DMA_Teste1_2x2.pdf) | [PNG](docs/SimVision_Waveform_DMA_Teste1_2x2.png)
+- Forma de onda VCD anotada (2×2 completo): [Waveform_DMA_Subsistema_Entrega3.pdf](docs/Waveform_DMA_Subsistema_Entrega3.pdf) | [PNG](docs/Waveform_DMA_Subsistema_Entrega3.png)
+
+![Captura real no Cadence SimVision — Subsistema DMA + AXI4 + DMEM + Acelerador (Teste 1, malha 2x2)](docs/SimVision_Waveform_DMA_Teste1_2x2.png)
+
+### Como Executar e Resultados (`44/44 PASS`)
+
+#### 1. Regressão única reproduzível (recomendado — 4 etapas)
+Executa sequencialmente: (1) testes do Golden Model Python (`12/12 PASS`), (2) conferência dos vetores `32×32` variados (`seed=2026`), (3) testes unitários do acelerador (`30/30 PASS`) e (4) testes integrados DMA + barramento AXI4 + DMEM + acelerador (`44/44 PASS`):
+
+```bash
+# Icarus Verilog 12.0:
+bash run_regressao.sh iverilog
+
+# Cadence Xcelium 24.09:
+bash run_regressao.sh xcelium
+```
+
+#### 2. Execução direta da suíte integrada da Entrega III
+```bash
+# Icarus Verilog 12.0:
+bash tb/unit_dma_mem_acc/run_iverilog.sh
+
+# Cadence Xcelium 24.09:
+bash tb/unit_dma_mem_acc/run_xcelium.sh
+```
+
+O testbench [`tb_dma_mem_acc.sv`](tb/unit_dma_mem_acc/tb_dma_mem_acc.sv) executa **14 subtestes** em cada malha `2×2`, `4×4` e `8×8` com `DMEM_LATENCY = 1` e **2 subtestes** na malha `4×4` com `DMEM_LATENCY = 3`, totalizando **44 subtestes autoverificáveis**.
+
+A verificação cobre: vetores HEX do Golden Model (`4×4`, `8×8` e `32×32` variados com `seed=2026` — `1.024` resultados `int32` com operandos positivos, negativos e extremos), estresse extremo uniforme `32×32` com `-128` (`C = +524.288`), fronteiras AXI4 de 4 KB em `AR`/`AW`, limites exatos da DMEM (última palavra `0x3FFC` com sentinelas) e rejeições de fronteira (`dim > 32`, desalinhamento, sobreposição e estouro `+4B` acima de `0x4000`) com comprovação de `ERR=1`, `DONE=0`, `BUSY=0`, sem tráfego `M1` e com sentinelas preservadas (`0x3000`, `0x3FF8` e `0x3FFC`), estabilidade sob esperas `READY=0`, distinção entre `SLVERR` e `DECERR`, concorrência `M0` vs `M1`, `SOFT_RST`, `rst_n` e recuperação. O ambiente combina monitores contínuos de protocolo e transferências com verificações de integridade ao final das operações (preservação integral de todas as palavras de $A$/$B$, inclusive bits `[31:8]`, escrita única por elemento válido de $C$ e zero escritas fora da região de $C$). No Teste 13 (`32×32` variado), `PERF_COMP_CYCLES` e `PERF_MEM_READS` são comparados com os valores esperados do Golden Model, enquanto `PERF_TOTAL_CYCLES` é medido e registrado.
+
+| Malha (`ARRAY_SIZE`) | `PERF_TOTAL_CYCLES` (`32×32` variado) | `PERF_COMP_CYCLES` (Golden) | `PERF_MEM_READS` (Golden) | `W_BEATS` (únicas em $C$) | Razão de ciclos vs `2×2` |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **2×2** | `151.552` | `16.384` | `32.768` | `1.024` | `1,00×` |
+| **4×4** | `46.656` | `5.120` | `16.384` | `1.024` | `3,25×` |
+| **8×8** | `16.864` | `1.408` | `8.192` | `1.024` | `8,99×` |
+
+*Comparação baseada na contagem de ciclos, sob as mesmas condições de simulação e supondo a mesma frequência de clock. Não representa comparação de frequência máxima ou desempenho após síntese.*
+
+- **Evidência Icarus Verilog 12.0:** regressão completa `4/4 etapas PASS` (`12/12` Golden Model, `30/30` Acelerador, **`44/44 PASS` | `0 erros`** no subsistema integrado em [`sim_iverilog.log`](tb/unit_dma_mem_acc/sim_iverilog.log) e [`logs_regressao/`](logs_regressao/)).
+- **Evidência Cadence Xcelium 24.09-s013:** regressão completa `4/4 etapas PASS`, `0 errors, 0 warnings` na compilação de todos os módulos e **`44/44 PASS` | `0 erros`** em [`sim_xcelium.log`](tb/unit_dma_mem_acc/sim_xcelium.log) (log histórico anterior preservado em [`historico_sim_xcelium_pre_consolidacao_38_38.log`](tb/unit_dma_mem_acc/historico_sim_xcelium_pre_consolidacao_38_38.log)).
+
+### Registro de Contribuições (Entrega Parcial III Consolidada)
+
+A versão consolidada mantém a arquitetura AXI4 da contribuição de Tatiana e incorpora vetores `32×32` variados (`seed=2026`, `1.024` resultados) e cenários de verificação de limites originados na contribuição de Matheus. A adaptação desses materiais ao testbench AXI4, a regressão unificada e a integração final foram realizadas por Tatiana, com assistência de ferramentas de IA.
+
+## 9. Organização e próximos passos
+
+| Diretório / Arquivo | Conteúdo atual ou previsto |
 | :--- | :--- |
+| `run_regressao.sh` | Script principal de regressão reproduzível (`iverilog` ou `xcelium`, 4 etapas sequenciais) |
 | `rv32i/` | CPU existente, programas e testes |
-| `sw/golden_model/` | Modelo Python, testes, documentação e vetores |
-| `docs/` | Especificação em Word e PDF |
+| `sw/golden_model/` | Modelo Python oficial (`golden_model.py`), 12 testes, `generate_32x32_vectors.py` e vetores `.hex` (`4×4`, `8×8`, `32×32`) |
+| `docs/` | Especificações (Parciais I, II e III), diagramas RTL e relatórios em Word/PDF |
 | `rtl/accelerator/` | **Implementado (Entrega II):** `mac_pe.v`, `systolic_array.v` e `systolic_accelerator.v` |
-| `tb/unit_accelerator/` | **Implementado (Entrega II):** `tb_systolic_accelerator.sv`, logs de simulação e documentação |
-| `rtl/` (demais pastas) | Reservadas para as próximas etapas: `cpu`, `bus`, `dma`, `memory` e `top` |
-| `sw/firmware/` | Reservada para o programa de configuração |
-| `tb/` | Reservada para testes unitários e UVM integrado |
-| `syn/` | Reservada para scripts e relatórios de síntese |
+| `rtl/memory/` | **Implementado (Entrega III):** `axi4_dmem.v` |
+| `rtl/bus/` | **Implementado (Entrega III):** `axi4_interconnect.v` |
+| `rtl/dma/` | **Implementado (Entrega III):** `dma_controller.v` |
+| `rtl/top/` | **Implementado (Entrega III):** `dma_mem_acc_subsys.v` |
+| `tb/unit_accelerator/` | **Implementado (Entrega II):** `tb_systolic_accelerator.sv`, logs e README |
+| `tb/unit_dma_mem_acc/` | **Implementado (Entrega III):** `tb_dma_mem_acc.sv`, scripts (`run_iverilog.sh`, `run_xcelium.sh`), logs e README |
+| `logs_regressao/` | Logs identificados por etapa e simulador gerados por `run_regressao.sh` |
+| `rtl/cpu/` e `sw/firmware/` | Reservados para a Entrega IV (Ponte AXI4 da CPU, Top-Level SoC e Firmware C/Assembly) |
+| `tb/uvm_soc/` | Reservado para o ambiente UVM integrado (Entrega IV) |
+| `syn/` | Reservado para scripts e relatórios de síntese (Entrega Final) |
 
-A próxima entrega (Entrega Parcial III) trata do RTL do controlador de DMA, da memória de dados compartilhada e do testbench integrando DMA, Memória e Acelerador.
+A próxima entrega (Entrega Parcial IV) integra o processador `rv32i_core` com sua ponte AXI4 ao subsistema validado, introduz o firmware de configuração em C/Assembly RISC-V e consolida o ambiente de verificação integrado em UVM. Na etapa de síntese lógica (Cadence Genus), serão avaliados o custo em área/frequência dos cálculos de endereço no DMA e a implementação/inicialização física da memória DMEM.

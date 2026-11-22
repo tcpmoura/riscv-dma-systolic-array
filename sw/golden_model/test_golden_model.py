@@ -11,11 +11,12 @@
 #               Matheus Artur Macedo Bomfim
 #               Nathalia Miranda
 #               Tatiana Caetano Praxedes de Moura
-# Descrição   : Suíte de testes unitários automatizados (11 testes) para o
-#               Golden Model em golden_model.py. Valida aritmética int8/int32,
-#               onda sistólica com skew (t = i + j + k), tiling em 2x2/4x4/8x8,
-#               zero-padding em matrizes retangulares, exportação .hex, limites
-#               do projeto (1..32) e regras de layout da DMEM compartilhada.
+# Descrição   : Suíte de testes unitários automatizados para o Golden Model em
+#               golden_model.py. Valida aritmética int8/int32, onda sistólica
+#               com skew (t = i + j + k), tiling em 2x2/4x4/8x8, zero-padding
+#               em matrizes retangulares, exportação .hex, limites do projeto
+#               (1..32), regras de layout da DMEM compartilhada e reprodutibilidade
+#               dos vetores 32x32 variados (seed=2026).
 # =============================================================================
 """
 Suíte de Testes Automatizados do Modelo de Referência (Golden Model)
@@ -287,6 +288,41 @@ def test_11_memory_layout():
     expect_error(ValueError, validate_memory_layout, 33, 1, 1)
     expect_error(TypeError, validate_memory_layout, 1, 1, 1, True, 4, 8)
     print("[PASS] Teste 11: Alinhamento, limites da DMEM e sobreposicao")
+
+
+def test_12_vectors_32x32_varied_seed2026():
+    """Valida a geração, conversão 32-bit e reprodutibilidade do cenário 32x32 variado (seed=2026)."""
+    from generate_32x32_vectors import (
+        DEFAULT_OUT_DIR,
+        DEFAULT_PREFIX,
+        DEFAULT_SEED,
+        generate_varied_32x32_matrices,
+        verify_exported_vectors,
+    )
+
+    A, B = generate_varied_32x32_matrices(32, 32, 32, seed=DEFAULT_SEED)
+    C_ref = matmul_reference_alg(A, B)
+
+    # Garante presença de positivos, negativos e extremos int8 nos dados variados
+    flat_a = [v for row in A for v in row]
+    flat_b = [v for row in B for v in row]
+    flat_c = [v for row in C_ref for v in row]
+    assert min(flat_a) == -128 and max(flat_a) == 127
+    assert min(flat_b) == -128 and max(flat_b) == 127
+    assert any(v < 0 for v in flat_c) and any(v > 0 for v in flat_c)
+
+    # Confere consistência nas três malhas suportadas (2x2, 4x4 e 8x8)
+    for size in (2, 4, 8):
+        res = matmul_tiled_golden(A, B, array_size=size)
+        assert res.C == C_ref, f"Divergência 32x32 variado em ARRAY_SIZE={size}"
+
+    # Valida exportação em diretório temporário e os vetores versionados em test_vectors/
+    with TemporaryDirectory() as tmp:
+        export_test_vectors_hex(Path(tmp), A, B, C_ref, prefix=DEFAULT_PREFIX)
+        verify_exported_vectors(Path(tmp), A, B, C_ref, prefix=DEFAULT_PREFIX)
+
+    verify_exported_vectors(DEFAULT_OUT_DIR, A, B, C_ref, prefix=DEFAULT_PREFIX)
+    print("[PASS] Teste 12: Vetores 32x32 variados (seed=2026, 1024 resultados, 2x2/4x4/8x8 e .hex 32-bit).")
 
 
 def main():

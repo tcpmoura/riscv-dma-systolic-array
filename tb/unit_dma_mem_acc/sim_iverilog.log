@@ -1,0 +1,64 @@
+=====================================================================
+  INICIO DA VERIFICACAO UNITARIA: DMA + BARRAMENTO AXI4 + DMEM + ACC 
+=====================================================================
+
+--- Executando bateria na configuracao ARRAY_SIZE = 2 (2x2) ---
+[PASS][2x2 L1] Teste 1: Tile TxT, IRQ_EN, contadores PERF_* e limpeza W1C
+[PASS][2x2 L1] Teste 2: Matriz 1x1 (-128 * -128 = +16384), bits [31:8] sujos, 2 leituras
+[PASS][2x2 L1] Teste 3: Matrizes retangulares (3x5*5x2 e 5x7*7x6), zero-padding e sentinelas
+[PASS][2x2 L1] Teste 4: Vetores .hex Golden Model (4x4 e 8x8) com PERF_COMP_CYCLES exato
+[PASS][2x2 L1] Teste 5: Estresse maximo 32x32 * 32x32 com -128 -> C=+524288 e PERF_MEM_READS exato
+[PASS][2x2 L1] Teste 6: Bases customizadas (0x0FF4.. e 0x0FFC..) com verificacao estrita de fronteira 4 KB em AR/AW
+[PASS][2x2 L1] Teste 7: DECERR de faixa/rajada e erros de config (dim=0, desalinhamento, sobreposicao, fim>16KB)
+[PASS][2x2 L1] Teste 8: Protecao de config em BUSY=1 e concorrencia AXI4 M0(CPU) vs M1(DMA)
+[PASS][2x2 L1] Teste 9: Abortamento seguro por SOFT_RST em operacao ativa, limpeza de status/contadores e recuperacao
+[PASS][2x2 L1] Teste 10: Reset geral assincrono em execucao ativa, limpeza de status/contadores e recuperacao
+[PASS][2x2 L1] Teste 11: Retencao de RREADY/BREADY (estabilidade VALID/dados) e esperas em AW/W/AR
+[PASS][2x2 L1] Teste 12: Alteracao controlada de enderecos pos-validacao (SLVERR vs DECERR em RRESP/BRESP) e recuperacao
+[INFO][2x2 L1] Teste 13 (32x32 variado seed=2026): TOTAL_CYCLES=151552 COMP_CYCLES=16384 MEM_READS=32768 W_BEATS=1024
+[PASS][2x2 L1] Teste 13: Vetores Python 32x32 variados (seed=2026, 1024 resultados) com escrita unica em C e preservacao de A/B
+[PASS][2x2 L1] Teste 14: Limites exatos da DMEM (ultima palavra 0x3FFC) e rejeicoes (dim>32, +4B>16KB) sem trafego M1
+
+--- Executando bateria na configuracao ARRAY_SIZE = 4 (4x4) ---
+[PASS][4x4 L1] Teste 1: Tile TxT, IRQ_EN, contadores PERF_* e limpeza W1C
+[PASS][4x4 L1] Teste 2: Matriz 1x1 (-128 * -128 = +16384), bits [31:8] sujos, 2 leituras
+[PASS][4x4 L1] Teste 3: Matrizes retangulares (3x5*5x2 e 5x7*7x6), zero-padding e sentinelas
+[PASS][4x4 L1] Teste 4: Vetores .hex Golden Model (4x4 e 8x8) com PERF_COMP_CYCLES exato
+[PASS][4x4 L1] Teste 5: Estresse maximo 32x32 * 32x32 com -128 -> C=+524288 e PERF_MEM_READS exato
+[PASS][4x4 L1] Teste 6: Bases customizadas (0x0FF4.. e 0x0FFC..) com verificacao estrita de fronteira 4 KB em AR/AW
+[PASS][4x4 L1] Teste 7: DECERR de faixa/rajada e erros de config (dim=0, desalinhamento, sobreposicao, fim>16KB)
+[PASS][4x4 L1] Teste 8: Protecao de config em BUSY=1 e concorrencia AXI4 M0(CPU) vs M1(DMA)
+[PASS][4x4 L1] Teste 9: Abortamento seguro por SOFT_RST em operacao ativa, limpeza de status/contadores e recuperacao
+[PASS][4x4 L1] Teste 10: Reset geral assincrono em execucao ativa, limpeza de status/contadores e recuperacao
+[PASS][4x4 L1] Teste 11: Retencao de RREADY/BREADY (estabilidade VALID/dados) e esperas em AW/W/AR
+[PASS][4x4 L1] Teste 12: Alteracao controlada de enderecos pos-validacao (SLVERR vs DECERR em RRESP/BRESP) e recuperacao
+[INFO][4x4 L1] Teste 13 (32x32 variado seed=2026): TOTAL_CYCLES=46656 COMP_CYCLES=5120 MEM_READS=16384 W_BEATS=1024
+[PASS][4x4 L1] Teste 13: Vetores Python 32x32 variados (seed=2026, 1024 resultados) com escrita unica em C e preservacao de A/B
+[PASS][4x4 L1] Teste 14: Limites exatos da DMEM (ultima palavra 0x3FFC) e rejeicoes (dim>32, +4B>16KB) sem trafego M1
+
+--- Executando bateria na configuracao ARRAY_SIZE = 8 (8x8) ---
+[PASS][8x8 L1] Teste 1: Tile TxT, IRQ_EN, contadores PERF_* e limpeza W1C
+[PASS][8x8 L1] Teste 2: Matriz 1x1 (-128 * -128 = +16384), bits [31:8] sujos, 2 leituras
+[PASS][8x8 L1] Teste 3: Matrizes retangulares (3x5*5x2 e 5x7*7x6), zero-padding e sentinelas
+[PASS][8x8 L1] Teste 4: Vetores .hex Golden Model (4x4 e 8x8) com PERF_COMP_CYCLES exato
+[PASS][8x8 L1] Teste 5: Estresse maximo 32x32 * 32x32 com -128 -> C=+524288 e PERF_MEM_READS exato
+[PASS][8x8 L1] Teste 6: Bases customizadas (0x0FF4.. e 0x0FFC..) com verificacao estrita de fronteira 4 KB em AR/AW
+[PASS][8x8 L1] Teste 7: DECERR de faixa/rajada e erros de config (dim=0, desalinhamento, sobreposicao, fim>16KB)
+[PASS][8x8 L1] Teste 8: Protecao de config em BUSY=1 e concorrencia AXI4 M0(CPU) vs M1(DMA)
+[PASS][8x8 L1] Teste 9: Abortamento seguro por SOFT_RST em operacao ativa, limpeza de status/contadores e recuperacao
+[PASS][8x8 L1] Teste 10: Reset geral assincrono em execucao ativa, limpeza de status/contadores e recuperacao
+[PASS][8x8 L1] Teste 11: Retencao de RREADY/BREADY (estabilidade VALID/dados) e esperas em AW/W/AR
+[PASS][8x8 L1] Teste 12: Alteracao controlada de enderecos pos-validacao (SLVERR vs DECERR em RRESP/BRESP) e recuperacao
+[INFO][8x8 L1] Teste 13 (32x32 variado seed=2026): TOTAL_CYCLES=16864 COMP_CYCLES=1408 MEM_READS=8192 W_BEATS=1024
+[PASS][8x8 L1] Teste 13: Vetores Python 32x32 variados (seed=2026, 1024 resultados) com escrita unica em C e preservacao de A/B
+[PASS][8x8 L1] Teste 14: Limites exatos da DMEM (ultima palavra 0x3FFC) e rejeicoes (dim>32, +4B>16KB) sem trafego M1
+
+--- Executando bateria com DMEM_LATENCY = 3 (4x4) ---
+[PASS][4x4 L3] Teste L3-1: DMEM LATENCY=3, 7x9*9x5 retangular com quebra 4KB verificada e IRQ/W1C
+[PASS][4x4 L3] Teste L3-2: DMEM LATENCY=3 com retencao RREADY/BREADY, provocacao controlada de SLVERR e recuperacao
+
+=====================================================================
+  RESUMO FINAL ENTREGA III: 44 / 44 subtestes PASS | Erros: 0
+=====================================================================
+ALL TESTS PASSED!
+tb/unit_dma_mem_acc/tb_dma_mem_acc.sv:2158: $finish called at 4683846000 (1ps)

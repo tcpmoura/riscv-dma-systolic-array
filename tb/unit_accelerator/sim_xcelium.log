@@ -1,5 +1,16 @@
-TOOL:	xrun(64)	24.09-s013: Started on Nov 12, 2026 at 06:43:08 -03
 xrun(64): 24.09-s013: (c) Copyright 1995-2025 Cadence Design Systems, Inc.
+TOOL:	xrun(64)	24.09-s013: Started on Nov 21, 2026 at 20:58:59 -03
+xrun
+	-64bit
+	-sv
+	-clean
+	rtl/accelerator/mac_pe.v
+	rtl/accelerator/systolic_array.v
+	rtl/accelerator/systolic_accelerator.v
+	tb/unit_accelerator/tb_systolic_accelerator.sv
+	-top tb_systolic_accelerator
+	-access +rwc
+	-l logs_regressao/accelerator_xcelium.log
 xrun: *N,CLEAN: Removing existing directory ./xcelium.d.
 file: rtl/accelerator/mac_pe.v
 	module worklib.mac_pe:v
@@ -27,7 +38,7 @@ file: tb/unit_accelerator/tb_systolic_accelerator.sv
 			streams:   7, words:  3956
 		worklib.mac_pe:v <0x196e0d83>
 			streams:   7, words:  3304
-		worklib.tb_systolic_accelerator:sv <0x76fb750a>
+		worklib.tb_systolic_accelerator:sv <0x3d2afc02>
 			streams:   5, words:  9100
 		worklib.systolic_array:v <0x3ff310d5>
 			streams:  12, words:  3624
@@ -35,17 +46,17 @@ file: tb/unit_accelerator/tb_systolic_accelerator.sv
 			streams:  12, words:  3864
 		worklib.systolic_array:v <0x271cfd38>
 			streams:  12, words:  4700
-		worklib.accel_bfm_harness:sv <0x485f50c6>
+		worklib.accel_bfm_harness:sv <0x4d55d6e3>
 			streams:  28, words: 194487
-		worklib.systolic_accelerator:v <0x746197c2>
+		worklib.systolic_accelerator:v <0x2a7a0370>
 			streams:  16, words: 10718
-		worklib.accel_bfm_harness:sv <0x292dcf9f>
+		worklib.accel_bfm_harness:sv <0x2ba6547d>
 			streams:  28, words: 194457
-		worklib.systolic_accelerator:v <0x6106bc4e>
+		worklib.systolic_accelerator:v <0x67961659>
 			streams:  16, words: 10820
-		worklib.accel_bfm_harness:sv <0x5debbbc7>
+		worklib.accel_bfm_harness:sv <0x183dd181>
 			streams:  28, words: 194568
-		worklib.systolic_accelerator:v <0x554eea90>
+		worklib.systolic_accelerator:v <0x50099679>
 			streams:  16, words: 12373
 	Building instance specific data structures.
 	Loading native compiled code:     .................... Done
@@ -110,6 +121,6 @@ xcelium> run
  RESULTADO FINAL: TODOS OS 30/30 SUBTESTES PASSARAM (2x2, 4x4 e 8x8) - PASS!
 ==============================================================================
 Simulation complete via $finish(1) at time 761491 NS + 0
-./tb/unit_accelerator/tb_systolic_accelerator.sv:951             $finish;
+./tb/unit_accelerator/tb_systolic_accelerator.sv:950             $finish;
 xcelium> exit
-TOOL:	xrun(64)	24.09-s013: Exiting on Nov 12, 2026 at 06:43:30 -03  (total: 00:00:22)
+TOOL:	xrun(64)	24.09-s013: Exiting on Nov 21, 2026 at 20:59:26 -03  (total: 00:00:27)

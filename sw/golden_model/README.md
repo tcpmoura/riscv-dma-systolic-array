@@ -55,17 +55,30 @@ não mede o processador existente.
 
 ```powershell
 python -B .\sw\golden_model\test_golden_model.py
+python -B .\sw\golden_model\generate_32x32_vectors.py --check
 python -B .\sw\golden_model\golden_model.py -m 8 -k 8 -n 8
 ```
 
-São 11 grupos de testes, incluindo resultados fixos, limites 1..32, int8 estrito,
-overflow unitário, métricas, memória e conteúdo hexadecimal. Não usar -O, pois
-desativa assertions. A exportação é testada em pasta temporária, preservando
-os vetores do projeto.
+São 12 grupos de testes, incluindo resultados fixos, limites 1..32, int8 estrito,
+overflow unitário, métricas, memória, conteúdo hexadecimal e reprodutibilidade do
+cenário `32×32` variado (`seed=2026`). Não usar `-O`, pois desativa assertions. A
+exportação é testada em pasta temporária, preservando os vetores do projeto.
 
-Para gerar vetores explicitamente:
+### Vetores `32×32` variados (`seed=2026`)
+
+O script [`generate_32x32_vectors.py`](generate_32x32_vectors.py) gera e confere os
+vetores oficiais `test_vectors/mat_32x32_varied_{A,B,C_expected}.hex` (`1.024`
+palavras de 32 bits cada) utilizando exclusivamente `golden_model.py` como referência
+oficial única. O cenário (`M=K=N=32`, `random.Random(2026)` sequencial em `[-128, 127]`)
+tem origem na contribuição de Matheus Artur Macedo Bomfim (Entrega Parcial III — Rev3),
+com conversão explícita de `A`/`B` de 2 dígitos hex para palavras de 32 bits no formato
+da base AXI4 (`000000XX`, preservando o byte `int8` com sinal em `[7:0]`).
+
+Para gerar ou conferir os vetores explicitamente:
 
 ```powershell
+python -B .\sw\golden_model\generate_32x32_vectors.py
+python -B .\sw\golden_model\generate_32x32_vectors.py --check
 python -B .\sw\golden_model\golden_model.py -m 8 -k 8 -n 8 --export-dir sw/golden_model/test_vectors
 ```
 

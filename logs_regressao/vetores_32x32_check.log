@@ -1,0 +1,1 @@
+[PASS] Vetores 32x32 variados (seed=2026) VERIFICADOS em /mnt/f/Downloads/consolidacao_entrega_III/trabalho/entrega_consolidada/sw/golden_model/test_vectors: mat_32x32_varied_A.hex, mat_32x32_varied_B.hex, mat_32x32_varied_C_expected.hex (1024 palavras cada; Golden Model 2x2/4x4/8x8 OK)
