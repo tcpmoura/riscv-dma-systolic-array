@@ -212,7 +212,7 @@ Esses ciclos representam apenas a malha ideal. Não incluem carga, controle do D
 
 ## 7. RTL do acelerador e verificação unitária (Entrega Parcial II)
 
-O acelerador matricial foi implementado em Verilog-2001 sintetizável em [`rtl/accelerator/`](rtl/accelerator/) e verificado por um testbench autoverificável em SystemVerilog em [`tb/unit_accelerator/`](tb/unit_accelerator/README.md).
+O acelerador matricial foi implementado em Verilog sintetizável em [`rtl/accelerator/`](rtl/accelerator/) e verificado por um testbench autoverificável em SystemVerilog em [`tb/unit_accelerator/`](tb/unit_accelerator/README.md).
 
 ### Hierarquia dos módulos RTL
 
@@ -238,7 +238,7 @@ Versão em PDF para impressão: [Datapath_Systolic_Accelerator.pdf](docs/Datapat
 
 O testbench [`tb/unit_accelerator/tb_systolic_accelerator.sv`](tb/unit_accelerator/tb_systolic_accelerator.sv) instancia as três configurações físicas do projeto (**`ARRAY_SIZE = 2`**, **`ARRAY_SIZE = 4`** e **`ARRAY_SIZE = 8`**) por meio do módulo BFM parametrizável `accel_bfm_harness` e executa **sequencialmente** a suíte de 10 subtestes em cada instância (totalizando 30 subtestes). O BFM emula manualmente o controlador de DMA (escrita nos buffers com validação estrita da faixa `int8` `[-128..127]` e *zero-padding* nas bordas, pulsos `acc_clear` e `acc_start`, verificação ciclo a ciclo de `acc_busy` e `acc_done` com *timeout*, e leitura de `buf_c_rdata`). Em caso de falha, a simulação encerra com `$fatal(1, ...)` retornando código de saída não-zero.
 
-Os resultados reportados abaixo foram validados tanto no **Cadence Xcelium 24.09 (`xrun` / SimVision)** (log em [`tb/unit_accelerator/sim_xcelium.log`](tb/unit_accelerator/sim_xcelium.log) e captura real em [`docs/SimVision_Waveform_Teste1_2x2.png`](docs/SimVision_Waveform_Teste1_2x2.png)) quanto no **Icarus Verilog 12.0 (`-g2012`)** (log em [`tb/unit_accelerator/sim_iverilog.log`](tb/unit_accelerator/sim_iverilog.log)).
+Os resultados reportados abaixo foram validados tanto no **Cadence Xcelium (`xrun` / SimVision)** (log em [`tb/unit_accelerator/sim_xcelium.log`](tb/unit_accelerator/sim_xcelium.log) e captura real em [`docs/SimVision_Waveform_Teste1_2x2.png`](docs/SimVision_Waveform_Teste1_2x2.png)) quanto no **Icarus Verilog (`-g2012`)** (log em [`tb/unit_accelerator/sim_iverilog.log`](tb/unit_accelerator/sim_iverilog.log)).
 
 Na raiz do projeto, execute no **Cadence Xcelium**:
 
@@ -292,7 +292,7 @@ Versão em PDF para impressão: [diagrama temporal ilustrativo em PDF](docs/Wave
 
 ## 8. RTL do DMA, Barramento AXI4 e Memória Compartilhada (Entrega Parcial III)
 
-A infraestrutura de movimentação de dados e memória foi implementada em Verilog-2001 (estilo voltado à síntese, ainda sem validação de síntese lógica no Cadence Genus nesta entrega) e validada em conjunto com o acelerador da Entrega II no ambiente [`tb/unit_dma_mem_acc/`](tb/unit_dma_mem_acc/README.md). Relatório completo em [`docs/Especificacao_Entrega_Parcial_3.pdf`](docs/Especificacao_Entrega_Parcial_3.pdf).
+A infraestrutura de movimentação de dados e memória foi implementada em Verilog (estilo voltado à síntese, ainda sem validação de síntese lógica no Cadence Genus nesta entrega) e validada em conjunto com o acelerador da Entrega II no ambiente [`tb/unit_dma_mem_acc/`](tb/unit_dma_mem_acc/README.md). Relatório completo em [`docs/Especificacao_Entrega_Parcial_3.pdf`](docs/Especificacao_Entrega_Parcial_3.pdf).
 
 ### Módulos Implementados
 
@@ -318,19 +318,19 @@ A infraestrutura de movimentação de dados e memória foi implementada em Veril
 Executa sequencialmente: (1) testes do Golden Model Python (`12/12 PASS`), (2) conferência dos vetores `32×32` variados (`seed=2026`), (3) testes unitários do acelerador (`30/30 PASS`) e (4) testes integrados DMA + barramento AXI4 + DMEM + acelerador (`44/44 PASS`):
 
 ```bash
-# Icarus Verilog 12.0:
+# Icarus Verilog:
 bash run_regressao.sh iverilog
 
-# Cadence Xcelium 24.09:
+# Cadence Xcelium:
 bash run_regressao.sh xcelium
 ```
 
 #### 2. Execução direta da suíte integrada da Entrega III
 ```bash
-# Icarus Verilog 12.0:
+# Icarus Verilog:
 bash tb/unit_dma_mem_acc/run_iverilog.sh
 
-# Cadence Xcelium 24.09:
+# Cadence Xcelium:
 bash tb/unit_dma_mem_acc/run_xcelium.sh
 ```
 
@@ -346,8 +346,8 @@ A verificação cobre: vetores HEX do Golden Model (`4×4`, `8×8` e `32×32` va
 
 *Comparação baseada na contagem de ciclos, sob as mesmas condições de simulação e supondo a mesma frequência de clock. Não representa comparação de frequência máxima ou desempenho após síntese.*
 
-- **Evidência Icarus Verilog 12.0:** regressão completa `4/4 etapas PASS` (`12/12` Golden Model, `30/30` Acelerador, **`44/44 PASS` | `0 erros`** no subsistema integrado em [`sim_iverilog.log`](tb/unit_dma_mem_acc/sim_iverilog.log) e [`logs_regressao/`](logs_regressao/)).
-- **Evidência Cadence Xcelium 24.09-s013:** regressão completa `4/4 etapas PASS`, `0 errors, 0 warnings` na compilação de todos os módulos e **`44/44 PASS` | `0 erros`** em [`sim_xcelium.log`](tb/unit_dma_mem_acc/sim_xcelium.log) (log histórico anterior preservado em [`historico_sim_xcelium_pre_consolidacao_38_38.log`](tb/unit_dma_mem_acc/historico_sim_xcelium_pre_consolidacao_38_38.log)).
+- **Evidência Icarus Verilog:** regressão completa `4/4 etapas PASS` (`12/12` Golden Model, `30/30` Acelerador, **`44/44 PASS` | `0 erros`** no subsistema integrado em [`sim_iverilog.log`](tb/unit_dma_mem_acc/sim_iverilog.log) e [`logs_regressao/`](logs_regressao/)).
+- **Evidência Cadence Xcelium:** regressão completa `4/4 etapas PASS`, `0 errors, 0 warnings` na compilação de todos os módulos e **`44/44 PASS` | `0 erros`** em [`sim_xcelium.log`](tb/unit_dma_mem_acc/sim_xcelium.log) (log histórico anterior preservado em [`historico_sim_xcelium_pre_consolidacao_38_38.log`](tb/unit_dma_mem_acc/historico_sim_xcelium_pre_consolidacao_38_38.log)).
 
 ### Resumo da Consolidação (Entrega Parcial III)
 

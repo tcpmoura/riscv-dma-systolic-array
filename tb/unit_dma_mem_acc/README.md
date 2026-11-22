@@ -25,11 +25,11 @@ bash run_regressao.sh xcelium
 
 ### 2. Execução direta apenas desta suíte (`tb_dma_mem_acc.sv`)
 ```bash
-# Icarus Verilog 12.0:
+# Icarus Verilog:
 bash tb/unit_dma_mem_acc/run_iverilog.sh
 # Log salvo em: tb/unit_dma_mem_acc/sim_iverilog.log (44/44 PASS)
 
-# Cadence Xcelium 24.09-s013:
+# Cadence Xcelium:
 bash tb/unit_dma_mem_acc/run_xcelium.sh
 # Log salvo em: tb/unit_dma_mem_acc/sim_xcelium.log (44/44 PASS, 0 errors, 0 warnings)
 ```

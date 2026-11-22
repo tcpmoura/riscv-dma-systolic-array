@@ -1,6 +1,6 @@
 # Verificação Unitária do Acelerador Matricial (Entrega Parcial II)
 
-Este diretório contém o testbench unitário em SystemVerilog ([`tb_systolic_accelerator.sv`](tb_systolic_accelerator.sv)) e os logs de simulação validados no **Cadence Xcelium 24.09** ([`sim_xcelium.log`](sim_xcelium.log)) e no **Icarus Verilog 12.0** ([`sim_iverilog.log`](sim_iverilog.log)), verificando os três módulos RTL do acelerador localizados em [`rtl/accelerator/`](../../rtl/accelerator/):
+Este diretório contém o testbench unitário em SystemVerilog ([`tb_systolic_accelerator.sv`](tb_systolic_accelerator.sv)) e os logs de simulação validados no **Cadence Xcelium** ([`sim_xcelium.log`](sim_xcelium.log)) e no **Icarus Verilog** ([`sim_iverilog.log`](sim_iverilog.log)), verificando os três módulos RTL do acelerador localizados em [`rtl/accelerator/`](../../rtl/accelerator/):
 
 1. [`rtl/accelerator/mac_pe.v`](../../rtl/accelerator/mac_pe.v) — Unidade MAC (*Processing Element* `Output-Stationary`, entradas `int8` com sinal, acumulador `int32` com sinal). Esquema RTL em [`Datapath_MAC_PE.png`](../../docs/Datapath_MAC_PE.png) ([PDF](../../docs/Datapath_MAC_PE.pdf)).
 2. [`rtl/accelerator/systolic_array.v`](../../rtl/accelerator/systolic_array.v) — Malha sistólica bidimensional parametrizável (`ARRAY_SIZE` $\times$ `ARRAY_SIZE`).
@@ -10,7 +10,7 @@ Este diretório contém o testbench unitário em SystemVerilog ([`tb_systolic_ac
 
 ## Como Executar a Simulação (a partir da raiz do projeto)
 
-Os resultados incluídos nesta entrega foram executados e validados tanto no **Cadence Xcelium 24.09 (`xrun` / SimVision)** (log completo com `0 errors, 0 warnings` em [`sim_xcelium.log`](sim_xcelium.log) e captura real em [`../../docs/SimVision_Waveform_Teste1_2x2.png`](../../docs/SimVision_Waveform_Teste1_2x2.png)) quanto no **Icarus Verilog 12.0 (`-g2012`)** (log em [`sim_iverilog.log`](sim_iverilog.log)). Em caso de qualquer erro de verificação ou *timeout*, o testbench encerra via `$fatal(1, ...)` retornando código de saída diferente de zero (`1`).
+Os resultados incluídos nesta entrega foram executados e validados tanto no **Cadence Xcelium (`xrun` / SimVision)** (log completo com `0 errors, 0 warnings` em [`sim_xcelium.log`](sim_xcelium.log) e captura real em [`../../docs/SimVision_Waveform_Teste1_2x2.png`](../../docs/SimVision_Waveform_Teste1_2x2.png)) quanto no **Icarus Verilog (`-g2012`)** (log em [`sim_iverilog.log`](sim_iverilog.log)). Em caso de qualquer erro de verificação ou *timeout*, o testbench encerra via `$fatal(1, ...)` retornando código de saída diferente de zero (`1`).
 
 ### 1. Icarus Verilog (`iverilog -g2012`)
 ```powershell

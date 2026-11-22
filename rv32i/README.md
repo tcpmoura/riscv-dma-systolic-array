@@ -1,6 +1,6 @@
 # Verificação funcional ampliada — RV32I com Stall
 
-Suite de **8 programas independentes**, para executar com o **Xcelium 24.09**. Cada programa possui arquivo `.s` (arquivos Assembly), `.hex` (palavras de instrução) e `tb_*.v` (testbench autochecking). Os nove módulos RTL do núcleo e a memória estão incluídos.
+Suite de **8 programas independentes**, para executar com o **Cadence Xcelium**. Cada programa possui arquivo `.s` (arquivos Assembly), `.hex` (palavras de instrução) e `tb_*.v` (testbench autochecking). Os nove módulos RTL do núcleo e a memória estão incluídos.
 
 ## Execução
 
