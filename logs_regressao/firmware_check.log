@@ -1,0 +1,5 @@
+[PASS] Firmware 'matmul_dma' VERIFICADO: 90 instrucoes (360 bytes) -> matmul_dma.{s,hex,bin}
+[PASS] Firmware 'test_fw_timeout' VERIFICADO: 90 instrucoes (360 bytes) -> test_fw_timeout.{s,hex,bin}
+[PASS] Firmware 'test_decerr_trap' VERIFICADO: 3 instrucoes (12 bytes) -> test_decerr_trap.{s,hex,bin}
+[PASS] Firmware 'test_decerr_write' VERIFICADO: 3 instrucoes (12 bytes) -> test_decerr_write.{s,hex,bin}
+[PASS] Firmware 'test_bridge_ops' VERIFICADO: 35 instrucoes (140 bytes) -> test_bridge_ops.{s,hex,bin}

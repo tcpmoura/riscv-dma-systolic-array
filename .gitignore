@@ -15,6 +15,7 @@ INCA_libs/
 !tb/unit_accelerator/sim_*.log
 !tb/unit_dma_mem_acc/sim_*.log
 !tb/unit_dma_mem_acc/historico_*.log
+!tb/unit_cpu/sim_*.log
 !logs_regressao/*.log
 *.history
 .simvision/

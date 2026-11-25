@@ -1,12 +1,12 @@
 # RISC-V com DMA e acelerador de multiplicação matricial
 
-**Entregas Parciais I, II e III — Planejamento, modelo de referência, RTL do acelerador, DMA, barramento AXI4, memória compartilhada e verificação integrada sem CPU**
+**Entregas Parciais I, II, III e IV (itens i e ii) — Planejamento, modelo de referência, acelerador, DMA/AXI4/DMEM, integração Top-Level do SoC RV32I e firmware**
 
 ## 1. Objetivo
 
 O projeto calcula C = A × B, com A de dimensão M×K, B de dimensão K×N e C de dimensão M×N. A CPU configura a operação; o DMA busca os dados e grava o resultado; o acelerador realiza as multiplicações e somas. Após o início, a CPU não transfere elementos por software.
 
-Neste repositório apresentamos a especificação arquitetural e o modelo de referência em Python (Entrega I — seção 8.a do [enunciado](Projeto%20Final%20RISCV%20DMA%20Systolic%20Array.pdf)), o RTL do acelerador sistólico com verificação unitária (Entrega II — seção 8.b) e o RTL completo do controlador de DMA, interconexão AXI4 e memória compartilhada com testbench integrado sem CPU (Entrega III — seção 8.c). A ponte AXI4 da CPU, o firmware RISC-V e o ambiente UVM completo serão finalizados na Entrega IV.
+Neste repositório apresentamos a especificação arquitetural e o modelo de referência em Python (Entrega I — seção 8.a do [enunciado](Projeto%20Final%20RISCV%20DMA%20Systolic%20Array.pdf)), o RTL do acelerador sistólico com verificação unitária (Entrega II — seção 8.b), o RTL completo do controlador de DMA, interconexão AXI4 e memória compartilhada com testbench integrado sem CPU (Entrega III — seção 8.c), e a integração Top-Level do SoC com a CPU RISC-V RV32I, ponte AXI4 e firmware (Entrega IV — itens i e ii, seção 9). O ambiente UVM integrado (Entrega IV — item iii) será desenvolvido na etapa seguinte.
 
 ## 2. Arquitetura proposta
 
@@ -314,8 +314,8 @@ A infraestrutura de movimentação de dados e memória foi implementada em Veril
 
 ### Como Executar e Resultados (`44/44 PASS`)
 
-#### 1. Regressão única reproduzível (recomendado — 4 etapas)
-Executa sequencialmente: (1) testes do Golden Model Python (`12/12 PASS`), (2) conferência dos vetores `32×32` variados (`seed=2026`), (3) testes unitários do acelerador (`30/30 PASS`) e (4) testes integrados DMA + barramento AXI4 + DMEM + acelerador (`44/44 PASS`):
+#### 1. Regressão única reproduzível (histórico da Entrega III — 4 etapas; expandida para 6 etapas na Entrega IV)
+Na Entrega III, a regressão executava 4 etapas: (1) testes do Golden Model Python (`12/12 PASS`), (2) conferência dos vetores `32×32` variados (`seed=2026`), (3) testes unitários do acelerador (`30/30 PASS`) e (4) testes integrados DMA + barramento AXI4 + DMEM + acelerador (`44/44 PASS`). Na Entrega IV, o mesmo script `run_regressao.sh` foi expandido para **6 etapas**, acrescentando a validação de sincronia do firmware e a verificação integrada do SoC completo (ver Seção 9):
 
 ```bash
 # Icarus Verilog:
@@ -353,24 +353,91 @@ A verificação cobre: vetores HEX do Golden Model (`4×4`, `8×8` e `32×32` va
 
 A Entrega Parcial III possui a arquitetura AXI4 e incorpora vetores `32×32` variados (`seed=2026`, `1.024` resultados) e cenários de verificação de limites.
 
-## 9. Organização e próximos passos
+## 9. Integração Top-Level do SoC e Firmware RV32I (Entrega Parcial IV — itens i e ii)
+
+O processador `rv32i_core` foi integrado ao subsistema validado da Entrega III sem alterar o núcleo `rv32i/` nem o RTL das Entregas II e III, acrescentando a ponte CPU → AXI4, o Top-Level completo do SoC e o firmware em Assembly RISC-V RV32I.
+
+### Módulos RTL e Firmware Implementados
+
+> **Fonte editável do firmware:** [`sw/firmware/build_firmware.py`](sw/firmware/build_firmware.py) gera e valida simultaneamente os arquivos `.s`, `.hex` e `.bin`. Editar apenas `.s` não atualiza os binários `.hex` e `.bin`; alterações devem ser feitas em `build_firmware.py` e conferidas com `--check`.
+
+| Componente | Arquivo | Descrição |
+| :--- | :--- | :--- |
+| `cpu_axi4_bridge` | [`rtl/cpu/cpu_axi4_bridge.v`](rtl/cpu/cpu_axi4_bridge.v) | Ponte síncrona em Verilog sintetizável que converte a interface `valid/ready` de palavra única do `rv32i_core` em transações AXI4 (`LEN=0`, `SIZE=3'b010`, `BURST=INCR`, `WLAST=1`) na porta Mestre 0 (`m0_axi_*`). Mantém canais estáveis durante `READY=0` e entrega `cpu_ready=1` por 1 ciclo exato em `ST_RESP` com `cpu_error=0` fora da conclusão. |
+| `riscv_dma_soc_top` | [`rtl/top/riscv_dma_soc_top.v`](rtl/top/riscv_dma_soc_top.v) | Top-Level completo do SoC (arquitetura Harvard), instanciando `rv32i_core`, `cpu_axi4_bridge` e `dma_mem_acc_subsys` (`axi4_interconnect`, `axi4_dmem`, `dma_controller`, `systolic_accelerator`). Expõe `ARRAY_SIZE` (`2`, `4`, `8`), `DMEM_WORDS`, `DMEM_LATENCY`, `IMEM_DEPTH`, `IMEM_FILE`, `debug_pc`, `halted`, `trap`, `retire` e `irq_done`. |
+| Firmware `matmul_dma` | [`sw/firmware/matmul_dma.s`](sw/firmware/matmul_dma.s) / [`.hex`](sw/firmware/matmul_dma.hex) / [`.bin`](sw/firmware/matmul_dma.bin) | Firmware RV32I (**90 instruções / 360 bytes**) que valida o descritor (`0x0000..0x001C`), protege a área reservada `0x0000..0x01FF`, limita `DESC_CPU_WORK` (`0..64`) e `DESC_CTRL` (`{0, 1, 3}`), configura e dispara o DMA via MMIO, aguarda conclusão por *polling* limitado (`200.000` iterações) com trabalho concorrente opcional em `0x0100..0x01FC`, limpa flags por W1C, grava telemetria em `0x0020..0x003C` e encerra via `EBREAK`. |
+| Firmwares dirigidos de teste | [`test_fw_timeout`](sw/firmware/test_fw_timeout.s), [`test_decerr_trap`](sw/firmware/test_decerr_trap.s), [`test_decerr_write`](sw/firmware/test_decerr_write.s), [`test_bridge_ops`](sw/firmware/test_bridge_ops.s) | Programas auxiliares para testar timeout de *polling* (`FW_ERR_TIMEOUT` + recuperação pós-reset), `RRESP=DECERR → trap`, `BRESP=DECERR → trap`, 3 `SW` consecutivos (1:1 `AW`/`W`/`B`), `SB`/`SH` com `WSTRB` e `LB`/`LBU`/`LH`/`LHU`/`LW`. |
+
+### Contrato do Sistema com o Firmware
+
+- **Área reservada na DMEM (`0x0000..0x01FF`):** `0x0000..0x001F` (descritor), `0x0020..0x003F` (telemetria) e `0x0100..0x01FC` (64 palavras privadas da CPU). As matrizes `A`, `B` e `C` devem iniciar em `>= 0x0200`. Essa restrição pertence ao contrato do firmware (o DMA isolado da Entrega III permanece genérico).
+- **Rejeições prévias (antes de `START`, sem disparar o DMA):** `DESC_CPU_WORK` aceita `0..64` (máximo de escritas durante o *polling*; pode concluir antes caso o DMA termine primeiro) e `DESC_CTRL` aceita `{0, 1, 3}` (`0` mapeia para `0x3 = START | IRQ_EN`). Entradas fora desses limites gravam `OUT_MAGIC = 0x46574552` (`"FWER"`) e o código de causa em `OUT_DMA_STATUS` (`0x80000001` área reservada, `0x80000002` `DESC_CPU_WORK > 64`, `0x80000003` `DESC_CTRL` inválido) **sem disparar o DMA**.
+- **Timeout de *polling* (após `START`, código `0x80000004`):** o limite de `200.000` iterações é um contador de software no laço de *polling* (não um *watchdog* independente caso o barramento AXI4 trave). Ao atingi-lo, o firmware grava `OUT_MAGIC = "FWER"` e `OUT_DMA_STATUS = 0x80000004` e encerra a CPU via `EBREAK`, **sem emitir `SOFT_RST`**. Como o DMA pode continuar ativo (`DMA_STATUS.BUSY = 1`), é obrigatório aplicar **reset global (`rst_n = 0`)** antes de reutilizar as regiões das matrizes ou iniciar outra execução (cancelamento automático via `SOFT_RST` fica como melhoria futura).
+- **Inicialização e *polling*:** o testbench (ou futuro ambiente UVM) preenche o descritor e as matrizes `A`/`B` antes da liberação de `rst_n`; o firmware acompanha a conclusão por *polling* em `DMA_STATUS`, enquanto `irq_done` permanece exposto na porta externa do SoC (sem rotina de interrupção no núcleo `rv32i_core`). Detalhes completos em [`sw/firmware/README.md`](sw/firmware/README.md).
+
+### Diagrama do SoC Completo e Capturas Reais no Cadence SimVision (Entrega IV)
+
+- Arquitetura RTL completa do SoC (`riscv_dma_soc_top.v`): [Arquitetura_SoC_Entrega4.pdf](docs/Arquitetura_SoC_Entrega4.pdf) | [PNG](docs/Arquitetura_SoC_Entrega4.png)
+- Captura real no Cadence SimVision — Panorama completo do Teste 3 (`5×7 × 7×6`, `36.200 ns – 52.200 ns`): [SimVision_Waveform_SoC_Teste3_Panorama.pdf](docs/SimVision_Waveform_SoC_Teste3_Panorama.pdf) | [PNG](docs/SimVision_Waveform_SoC_Teste3_Panorama.png)
+- Captura real no Cadence SimVision — Zoom da concorrência CPU × DMA (`37.300 ns – 38.400 ns`): [SimVision_Waveform_SoC_Teste3_Concorrencia.pdf](docs/SimVision_Waveform_SoC_Teste3_Concorrencia.pdf) | [PNG](docs/SimVision_Waveform_SoC_Teste3_Concorrencia.png)
+
+![Arquitetura RTL completa do SoC — Entrega Parcial IV](docs/Arquitetura_SoC_Entrega4.png)
+
+#### Evidência real no Cadence SimVision (`u_soc_2x2.u_soc`, Teste 3: `5×7 × 7×6` + concorrência CPU × DMA)
+
+1. **Panorama completo (`36.200 ns – 52.200 ns`):** após `rst_n = 1` (`36.335 ns`), a CPU valida o descritor, programa os registradores MMIO, dispara o DMA (`status_busy = 1` em `37.495 ns`), executa as 16 escritas concorrentes em `0x0100..0x013C` enquanto o DMA realiza rajadas `M1` (`m1_axi_arvalid` / `m1_axi_awvalid`) e aciona o acelerador (`acc_busy`), recebe `irq_done = 1` ao final (`51.125 ns`), limpa `DMA_STATUS` por W1C (`51.465 ns`), grava telemetria e encerra via `EBREAK` (`halted = 1` em `52.015 ns`, `trap = 0`).
+
+![Captura real no Cadence SimVision — Panorama completo do SoC (Teste 3, malha 2x2)](docs/SimVision_Waveform_SoC_Teste3_Panorama.png)
+
+2. **Zoom na transição de disparo e concorrência (`37.300 ns – 38.400 ns`):** evidencia em detalhe `debug_pc = 0x00000094` (`DMA_DIM_N = 6` em `0x4000001C`), `debug_pc = 0x000000AC` (`DMA_CTRL = 0x3` em `0x40000000` levando `status_busy` a `1`) e, imediatamente durante `status_busy = 1`, `m1_axi_arvalid = 1` e `acc_busy = 1`, as escritas concorrentes da CPU em `0x00000100..0x0000010C` (`0x0000A500..0x0000A503`) intercaladas com o *polling* em `0x40000004`.
+
+![Captura real no Cadence SimVision — Zoom da concorrência CPU vs DMA (Teste 3, malha 2x2)](docs/SimVision_Waveform_SoC_Teste3_Concorrencia.png)
+
+### Como Executar e Resultados do SoC Completo (`27/27 PASS`)
+
+```bash
+# Regressão unificada completa (6 etapas: Golden Model -> Vetores 32x32 -> Firmware -> Acelerador -> DMA+Mem+Acc -> SoC completo):
+bash run_regressao.sh iverilog
+bash run_regressao.sh xcelium
+
+# Execução direta apenas do SoC completo (tb/unit_cpu/tb_riscv_dma_soc.sv):
+bash tb/unit_cpu/run_iverilog.sh
+bash tb/unit_cpu/run_xcelium.sh
+```
+
+O testbench [`tb/unit_cpu/tb_riscv_dma_soc.sv`](tb/unit_cpu/tb_riscv_dma_soc.sv) executa **27 subtestes** com a CPU RV32I real (`ARRAY_SIZE = 2, 4, 8` com `DMEM_LATENCY = 1`, suíte de contratos `FW-1..FW-4` incluindo timeout + recuperação pós-reset, `4×4` com `DMEM_LATENCY = 3` incluindo `RESET-1`, e testes dirigidos `TRAP-1`, `TRAP-2` e `BRIDGE-1`). Monitores contínuos conferem conformidade AXI4 na ponte, estabilidade da interface da CPU durante espera (`retire=0`), correspondência 1:1 CPU ↔ `M0`, restrição de escritas da CPU à faixa `0x0000..0x01FF`, concorrência real durante `DMA_STATUS.BUSY = 1`, **zero acessos da CPU às matrizes A/B/C**, escrita única em `C`, preservação de `A/B` e resultados bit a bit contra os vetores Python:
+
+| Malha (`ARRAY_SIZE`) | `DMA_TOTAL_CYCLES` (`32×32` via CPU real) | `COMP_CYCLES` (Golden) | `MEM_READS` (Golden) | Iterações *polling* CPU | Ciclos de espera `M0` (disputa AXI4) |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **2×2** | `152.067` | `16.384` | `32.768` | `12.539` | `26.678` |
+| **4×4** | `53.480` | `5.120` | `16.384` | `4.852` | `4.959` |
+| **8×8** | `16.776` | `1.408` | `8.192` | `1.272` | `4.054` |
+
+*Comparação baseada na contagem de ciclos, sob as mesmas condições de simulação e supondo a mesma frequência de clock. Não representa comparação de frequência máxima ou desempenho após síntese.*
+
+- **Evidência Icarus Verilog:** **`27/27 subtestes PASS | Erros: 0`** em [`tb/unit_cpu/sim_iverilog.log`](tb/unit_cpu/sim_iverilog.log).
+- **Evidência Cadence Xcelium:** **`27/27 subtestes PASS | Erros: 0`**, **`0 errors, 0 warnings`** nos 23 módulos compilados, em [`tb/unit_cpu/sim_xcelium.log`](tb/unit_cpu/sim_xcelium.log).
+
+## 10. Organização e próximos passos
 
 | Diretório / Arquivo | Conteúdo atual ou previsto |
 | :--- | :--- |
-| `run_regressao.sh` | Script principal de regressão reproduzível (`iverilog` ou `xcelium`, 4 etapas sequenciais) |
-| `rv32i/` | CPU existente, programas e testes |
+| `run_regressao.sh` | Script principal de regressão reproduzível (`iverilog` ou `xcelium`, 6 etapas sequenciais) |
+| `rv32i/` | CPU RISC-V RV32I, programas e testes unitários |
 | `sw/golden_model/` | Modelo Python oficial (`golden_model.py`), 12 testes, `generate_32x32_vectors.py` e vetores `.hex` (`4×4`, `8×8`, `32×32`) |
-| `docs/` | Especificações (Parciais I, II e III), diagramas RTL e relatórios em Word/PDF |
+| `sw/firmware/` | **Implementado (Entrega IV — item ii):** `build_firmware.py`, `matmul_dma.{s,hex,bin}`, `test_fw_timeout.{s,hex,bin}`, `test_decerr_trap.{s,hex,bin}`, `test_decerr_write.{s,hex,bin}`, `test_bridge_ops.{s,hex,bin}` e README |
+| `docs/` | Especificações (Parciais I, II e III), diagramas RTL (Entregas I a IV), capturas SimVision e relatórios em Word/PDF |
 | `rtl/accelerator/` | **Implementado (Entrega II):** `mac_pe.v`, `systolic_array.v` e `systolic_accelerator.v` |
 | `rtl/memory/` | **Implementado (Entrega III):** `axi4_dmem.v` |
 | `rtl/bus/` | **Implementado (Entrega III):** `axi4_interconnect.v` |
 | `rtl/dma/` | **Implementado (Entrega III):** `dma_controller.v` |
-| `rtl/top/` | **Implementado (Entrega III):** `dma_mem_acc_subsys.v` |
+| `rtl/cpu/` | **Implementado (Entrega IV — item i):** `cpu_axi4_bridge.v` |
+| `rtl/top/` | **Implementado (Entregas III e IV):** `dma_mem_acc_subsys.v` e `riscv_dma_soc_top.v` |
 | `tb/unit_accelerator/` | **Implementado (Entrega II):** `tb_systolic_accelerator.sv`, logs e README |
 | `tb/unit_dma_mem_acc/` | **Implementado (Entrega III):** `tb_dma_mem_acc.sv`, scripts (`run_iverilog.sh`, `run_xcelium.sh`), logs e README |
+| `tb/unit_cpu/` | **Implementado (Entrega IV — itens i/ii):** `tb_riscv_dma_soc.sv`, scripts (`run_iverilog.sh`, `run_xcelium.sh`), logs e README |
 | `logs_regressao/` | Logs identificados por etapa e simulador gerados por `run_regressao.sh` |
-| `rtl/cpu/` e `sw/firmware/` | Reservados para a Entrega IV (Ponte AXI4 da CPU, Top-Level SoC e Firmware C/Assembly) |
-| `tb/uvm_soc/` | Reservado para o ambiente UVM integrado (Entrega IV) |
-| `syn/` | Reservado para scripts e relatórios de síntese (Entrega Final) |
+| `tb/uvm_soc/` | Reservado para o ambiente UVM integrado (Entrega IV — item iii) |
+| `syn/` | Reservado para scripts e relatórios de síntese lógica no Cadence Genus (Entrega Final) |
 
-A próxima entrega (Entrega Parcial IV) integra o processador `rv32i_core` com sua ponte AXI4 ao subsistema validado, introduz o firmware de configuração em C/Assembly RISC-V e consolida o ambiente de verificação integrado em UVM. Na etapa de síntese lógica (Cadence Genus), serão avaliados o custo em área/frequência dos cálculos de endereço no DMA e a implementação/inicialização física da memória DMEM.
+Os próximos passos consistem na construção do ambiente de verificação **UVM integrado** em `tb/uvm_soc/` (Entrega Parcial IV — item iii) e na etapa de **síntese lógica no Cadence Genus** (Entrega Final), gerando relatórios de área e temporização para as três configurações físicas do *systolic array* (`2×2`, `4×4` e `8×8`).

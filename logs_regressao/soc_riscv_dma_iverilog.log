@@ -1,0 +1,51 @@
+=====================================================================
+  INICIO DA VERIFICACAO INTEGRADA DO SOC: RV32I + DMA + AXI4 + ACC   
+=====================================================================
+
+--- Executando firmware RV32I no SoC ARRAY_SIZE = 2 (2x2) ---
+[PASS][SoC 2x2 L1] Teste 1: Firmware RV32I configura DMA (TxT), IRQ, PERF_* e W1C sem CPU mover matrizes
+[PASS][SoC 2x2 L1] Teste 2: Vetores .hex Golden Model (4x4 e 8x8) executados pelo firmware RV32I
+[PASS][SoC 2x2 L1] Teste 3: Matriz retangular 5x7*7x6 com concorrencia real CPU (0x0100..0x01FC, BUSY=1) vs DMA
+[INFO][SoC 2x2 L1] Teste 4 (32x32 variado via CPU RV32I): DMA_TOTAL_CYCLES=152067 COMP=16384 READS=32768 POLL_ITERS=12539 M0_WAIT=26678 WORK_DURING_BUSY=8
+[PASS][SoC 2x2 L1] Teste 4: Vetores Python 32x32 variados (seed=2026, 1024 resultados) comandados pela CPU RV32I
+[PASS][SoC 2x2 L1] Teste 5: Configuracao invalida (M=33) rejeitada pelo DMA e tratada pelo firmware (OUT_MAGIC=ERR!)
+[PASS][SoC 2x2 L1] Teste 6: Bases customizadas (0x0FFC/0x1FFC/0x2FFC) cruzando 4 KB via firmware RV32I
+
+--- Executando firmware RV32I no SoC ARRAY_SIZE = 4 (4x4) ---
+[PASS][SoC 4x4 L1] Teste 1: Firmware RV32I configura DMA (TxT), IRQ, PERF_* e W1C sem CPU mover matrizes
+[PASS][SoC 4x4 L1] Teste 2: Vetores .hex Golden Model (4x4 e 8x8) executados pelo firmware RV32I
+[PASS][SoC 4x4 L1] Teste 3: Matriz retangular 5x7*7x6 com concorrencia real CPU (0x0100..0x01FC, BUSY=1) vs DMA
+[INFO][SoC 4x4 L1] Teste 4 (32x32 variado via CPU RV32I): DMA_TOTAL_CYCLES=53480 COMP=5120 READS=16384 POLL_ITERS=4852 M0_WAIT=4959 WORK_DURING_BUSY=8
+[PASS][SoC 4x4 L1] Teste 4: Vetores Python 32x32 variados (seed=2026, 1024 resultados) comandados pela CPU RV32I
+[PASS][SoC 4x4 L1] Teste 5: Configuracao invalida (M=33) rejeitada pelo DMA e tratada pelo firmware (OUT_MAGIC=ERR!)
+[PASS][SoC 4x4 L1] Teste 6: Bases customizadas (0x0FFC/0x1FFC/0x2FFC) cruzando 4 KB via firmware RV32I
+
+--- Executando suite de contratos do firmware (4x4) ---
+[PASS][SoC 4x4 L1] Teste FW-1: Protecao da area reservada 0x0000..0x01FF (A=0x0000, C=0x0020, B=0x0100 -> FWER; 0x0200 -> DONE)
+[PASS][SoC 4x4 L1] Teste FW-2: Limite de DESC_CPU_WORK (0 e 64 com 0x0200 intacto; 65 rejeitado com FWER/0x80000002)
+[PASS][SoC 4x4 L1] Teste FW-3: Validacao de DESC_CTRL (0->0x3, 1 sem IRQ, 2 e 4 rejeitados com FWER/0x80000003)
+[PASS][SoC 4x4 L1] Teste FW-4: Timeout de polling (FWER/0x80000004 com DMA_BUSY=1) e recuperacao limpa apos reset global
+
+--- Executando firmware RV32I no SoC ARRAY_SIZE = 8 (8x8) ---
+[PASS][SoC 8x8 L1] Teste 1: Firmware RV32I configura DMA (TxT), IRQ, PERF_* e W1C sem CPU mover matrizes
+[PASS][SoC 8x8 L1] Teste 2: Vetores .hex Golden Model (4x4 e 8x8) executados pelo firmware RV32I
+[PASS][SoC 8x8 L1] Teste 3: Matriz retangular 5x7*7x6 com concorrencia real CPU (0x0100..0x01FC, BUSY=1) vs DMA
+[INFO][SoC 8x8 L1] Teste 4 (32x32 variado via CPU RV32I): DMA_TOTAL_CYCLES=16776 COMP=1408 READS=8192 POLL_ITERS=1272 M0_WAIT=4054 WORK_DURING_BUSY=8
+[PASS][SoC 8x8 L1] Teste 4: Vetores Python 32x32 variados (seed=2026, 1024 resultados) comandados pela CPU RV32I
+[PASS][SoC 8x8 L1] Teste 5: Configuracao invalida (M=33) rejeitada pelo DMA e tratada pelo firmware (OUT_MAGIC=ERR!)
+[PASS][SoC 8x8 L1] Teste 6: Bases customizadas (0x0FFC/0x1FFC/0x2FFC) cruzando 4 KB via firmware RV32I
+
+--- Executando firmware RV32I no SoC DMEM_LATENCY = 3 (4x4) ---
+[PASS][SoC 4x4 L3] Teste L3-1: SoC completo com DMEM_LATENCY=3, 7x9*9x5, quebra 4 KB e concorrencia CPU/DMA
+[PASS][SoC 4x4 L3] Teste RESET-1: Reset assincrono durante transacao pendente na ponte limpa FSM e retoma execucao limpa
+
+--- Executando testes dirigidos da ponte cpu_axi4_bridge ---
+[PASS][SoC 4x4 L1] Teste TRAP-1: Leitura ilegal da CPU (0x5000_0000) gera RRESP=DECERR -> cpu_error=1 -> trap=1
+[PASS][SoC 4x4 L1] Teste TRAP-2: Escrita ilegal da CPU (0x5000_0000) gera BRESP=DECERR -> cpu_error=1 -> trap=1
+[PASS][SoC 4x4 L1] Teste BRIDGE-1: 3 SW consecutivos (1:1 AW/W/B), SB/SH com WSTRB/preservacao e LB/LBU/LH/LHU/LW
+
+=====================================================================
+  RESUMO FINAL SOC (ENTREGA IV): 27 / 27 subtestes PASS | Erros: 0
+=====================================================================
+ALL TESTS PASSED!
+tb/unit_cpu/tb_riscv_dma_soc.sv:1398: $finish called at 2481775000 (1ps)

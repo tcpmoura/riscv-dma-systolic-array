@@ -1,0 +1,273 @@
+xrun(64): 24.09-s013: (c) Copyright 1995-2025 Cadence Design Systems, Inc.
+TOOL:	xrun(64)	24.09-s013: Started on Nov 25, 2026 at 13:49:06 -03
+xrun
+	-64bit
+	-sv
+	-clean
+	rv32i/adder.v
+	rv32i/alu.v
+	rv32i/branch_unit.v
+	rv32i/control_unit.v
+	rv32i/immediate_generator.v
+	rv32i/instruction_memory.v
+	rv32i/load_store_unit.v
+	rv32i/mux2.v
+	rv32i/mux4.v
+	rv32i/pc.v
+	rv32i/register_file.v
+	rv32i/rv32i_core.v
+	rtl/accelerator/mac_pe.v
+	rtl/accelerator/systolic_array.v
+	rtl/accelerator/systolic_accelerator.v
+	rtl/memory/axi4_dmem.v
+	rtl/bus/axi4_interconnect.v
+	rtl/dma/dma_controller.v
+	rtl/top/dma_mem_acc_subsys.v
+	rtl/cpu/cpu_axi4_bridge.v
+	rtl/top/riscv_dma_soc_top.v
+	tb/unit_cpu/tb_riscv_dma_soc.sv
+	-top tb_riscv_dma_soc
+	-access +rwc
+	-l tb/unit_cpu/sim_xcelium.log
+xrun: *N,CLEAN: Removing existing directory ./xcelium.d.
+file: rv32i/adder.v
+	module worklib.adder:v
+		errors: 0, warnings: 0
+file: rv32i/alu.v
+	module worklib.alu:v
+		errors: 0, warnings: 0
+file: rv32i/branch_unit.v
+	module worklib.branch_unit:v
+		errors: 0, warnings: 0
+file: rv32i/control_unit.v
+	module worklib.control_unit:v
+		errors: 0, warnings: 0
+file: rv32i/immediate_generator.v
+	module worklib.immediate_generator:v
+		errors: 0, warnings: 0
+file: rv32i/instruction_memory.v
+	module worklib.instruction_memory:v
+		errors: 0, warnings: 0
+file: rv32i/load_store_unit.v
+	module worklib.load_store_unit:v
+		errors: 0, warnings: 0
+file: rv32i/mux2.v
+	module worklib.mux2:v
+		errors: 0, warnings: 0
+file: rv32i/mux4.v
+	module worklib.mux4:v
+		errors: 0, warnings: 0
+file: rv32i/pc.v
+	module worklib.pc:v
+		errors: 0, warnings: 0
+file: rv32i/register_file.v
+	module worklib.register_file:v
+		errors: 0, warnings: 0
+file: rv32i/rv32i_core.v
+	module worklib.rv32i_core:v
+		errors: 0, warnings: 0
+file: rtl/accelerator/mac_pe.v
+	module worklib.mac_pe:v
+		errors: 0, warnings: 0
+file: rtl/accelerator/systolic_array.v
+	module worklib.systolic_array:v
+		errors: 0, warnings: 0
+file: rtl/accelerator/systolic_accelerator.v
+	module worklib.systolic_accelerator:v
+		errors: 0, warnings: 0
+file: rtl/memory/axi4_dmem.v
+	module worklib.axi4_dmem:v
+		errors: 0, warnings: 0
+file: rtl/bus/axi4_interconnect.v
+	module worklib.axi4_interconnect:v
+		errors: 0, warnings: 0
+file: rtl/dma/dma_controller.v
+	module worklib.dma_controller:v
+		errors: 0, warnings: 0
+file: rtl/top/dma_mem_acc_subsys.v
+	module worklib.dma_mem_acc_subsys:v
+		errors: 0, warnings: 0
+file: rtl/cpu/cpu_axi4_bridge.v
+	module worklib.cpu_axi4_bridge:v
+		errors: 0, warnings: 0
+file: rtl/top/riscv_dma_soc_top.v
+	module worklib.riscv_dma_soc_top:v
+		errors: 0, warnings: 0
+file: tb/unit_cpu/tb_riscv_dma_soc.sv
+	module worklib.soc_test_harness:sv
+		errors: 0, warnings: 0
+	module worklib.tb_riscv_dma_soc:sv
+		errors: 0, warnings: 0
+	Elaborating the design hierarchy:
+		Caching library 'worklib' ....... Done
+	Top level design units:
+		tb_riscv_dma_soc
+	Building instance overlay tables: .................... Done
+	Generating native compiled code:
+		worklib.instruction_memory:v <0x4bf63365>
+			streams:   4, words:  1476
+		worklib.rv32i_core:v <0x1c91b0b2>
+			streams:  15, words:  3749
+		worklib.instruction_memory:v <0x6746aa0e>
+			streams:   4, words:  1476
+		worklib.rv32i_core:v <0x4334342a>
+			streams:  15, words:  3749
+		worklib.instruction_memory:v <0x6eb6fbc4>
+			streams:   4, words:  1476
+		worklib.rv32i_core:v <0x5a79e17f>
+			streams:  15, words:  3749
+		worklib.mac_pe:v <0x62a819b0>
+			streams:   7, words:  4202
+		worklib.mac_pe:v <0x79669140>
+			streams:   7, words:  3956
+		worklib.mac_pe:v <0x5a79e3c2>
+			streams:   7, words:  3304
+		worklib.axi4_interconnect:v <0x56fbbfa3>
+			streams:  48, words: 47573
+		worklib.load_store_unit:v <0x6baa6d18>
+			streams:   2, words:  5618
+		worklib.branch_unit:v <0x0ef12b9b>
+			streams:   1, words:   900
+		worklib.alu:v <0x1a251b4c>
+			streams:   2, words:  1660
+		worklib.control_unit:v <0x390d49ed>
+			streams:   2, words: 16788
+		worklib.immediate_generator:v <0x44958377>
+			streams:   2, words:  1570
+		worklib.register_file:v <0x71689061>
+			streams:   5, words:  2508
+		worklib.instruction_memory:v <0x2ae471bb>
+			streams:   4, words:  1476
+		worklib.pc:v <0x6c6453cf>
+			streams:   2, words:   576
+		worklib.mux4:v <0x07cdd677>
+			streams:   1, words:   369
+		worklib.mux2:v <0x11c172fa>
+			streams:   1, words:   234
+		worklib.adder:v <0x176e6897>
+			streams:   1, words:   176
+		worklib.rv32i_core:v <0x6ac8374b>
+			streams:  15, words:  3749
+		worklib.tb_riscv_dma_soc:sv <0x2bd97956>
+			streams:   3, words:  9480
+		worklib.systolic_array:v <0x5696b0b7>
+			streams:  12, words:  3624
+		worklib.systolic_accelerator:v <0x6c0e86a3>
+			streams:  16, words: 10718
+		worklib.systolic_array:v <0x7df8e9a3>
+			streams:  12, words:  4700
+		worklib.systolic_accelerator:v <0x2a535677>
+			streams:  16, words: 12373
+		worklib.systolic_array:v <0x599c397d>
+			streams:  12, words:  3864
+		worklib.systolic_accelerator:v <0x05e61957>
+			streams:  16, words: 10820
+		worklib.soc_test_harness:sv <0x680a8b8c>
+			streams:  27, words: 182547
+		worklib.soc_test_harness:sv <0x7d6266b1>
+			streams:  27, words: 182571
+		worklib.soc_test_harness:sv <0x78f70761>
+			streams:  27, words: 182571
+		worklib.soc_test_harness:sv <0x5bb24237>
+			streams:  27, words: 182580
+		worklib.soc_test_harness:sv <0x4b55a1b3>
+			streams:  27, words: 182571
+		worklib.soc_test_harness:sv <0x547593f5>
+			streams:  27, words: 182571
+		worklib.soc_test_harness:sv <0x14f17f09>
+			streams:  27, words: 182571
+		worklib.soc_test_harness:sv <0x35780d47>
+			streams:  27, words: 182571
+		worklib.dma_controller:v <0x57022816>
+			streams: 107, words: 72567
+		worklib.dma_mem_acc_subsys:v <0x0bd04d37>
+			streams:   0, words:     0
+		worklib.dma_controller:v <0x1e463aed>
+			streams: 107, words: 72209
+		worklib.dma_mem_acc_subsys:v <0x0fdd95c4>
+			streams:   0, words:     0
+		worklib.dma_mem_acc_subsys:v <0x1c593c9f>
+			streams:   0, words:     0
+		worklib.axi4_dmem:v <0x752c1778>
+			streams:  45, words: 20869
+		worklib.dma_controller:v <0x5a0e3566>
+			streams: 107, words: 72209
+		worklib.dma_mem_acc_subsys:v <0x56dce369>
+			streams:   0, words:     0
+		worklib.axi4_dmem:v <0x6b5ba137>
+			streams:  44, words: 21609
+		worklib.cpu_axi4_bridge:v <0x32dd5526>
+			streams:  12, words:  8340
+	Building instance specific data structures.
+	Loading native compiled code:     .................... Done
+	Design hierarchy summary:
+		                   Instances  Unique
+		Modules:                 373      23
+		Registers:             3,568     390
+		Scalar wires:          1,030       -
+		Expanded wires:        9,856     548
+		Vectored wires:        2,018       -
+		Always blocks:           356      24
+		Initial blocks:           26       5
+		Cont. assignments:     1,728     137
+		Pseudo assignments:       89       -
+		Process Clocks:          268      16
+		Simulation timescale:    1ps
+	Writing initial simulation snapshot: worklib.tb_riscv_dma_soc:sv
+Loading snapshot worklib.tb_riscv_dma_soc:sv .................... Done
+xcelium> source /cadence/XCELIUM2409/tools/xcelium/files/xmsimrc
+xcelium> run
+=====================================================================
+  INICIO DA VERIFICACAO INTEGRADA DO SOC: RV32I + DMA + AXI4 + ACC   
+=====================================================================
+
+--- Executando firmware RV32I no SoC ARRAY_SIZE = 2 (2x2) ---
+[PASS][SoC 2x2 L1] Teste 1: Firmware RV32I configura DMA (TxT), IRQ, PERF_* e W1C sem CPU mover matrizes
+[PASS][SoC 2x2 L1] Teste 2: Vetores .hex Golden Model (4x4 e 8x8) executados pelo firmware RV32I
+[PASS][SoC 2x2 L1] Teste 3: Matriz retangular 5x7*7x6 com concorrencia real CPU (0x0100..0x01FC, BUSY=1) vs DMA
+[INFO][SoC 2x2 L1] Teste 4 (32x32 variado via CPU RV32I): DMA_TOTAL_CYCLES=152067 COMP=16384 READS=32768 POLL_ITERS=12539 M0_WAIT=26678 WORK_DURING_BUSY=8
+[PASS][SoC 2x2 L1] Teste 4: Vetores Python 32x32 variados (seed=2026, 1024 resultados) comandados pela CPU RV32I
+[PASS][SoC 2x2 L1] Teste 5: Configuracao invalida (M=33) rejeitada pelo DMA e tratada pelo firmware (OUT_MAGIC=ERR!)
+[PASS][SoC 2x2 L1] Teste 6: Bases customizadas (0x0FFC/0x1FFC/0x2FFC) cruzando 4 KB via firmware RV32I
+
+--- Executando firmware RV32I no SoC ARRAY_SIZE = 4 (4x4) ---
+[PASS][SoC 4x4 L1] Teste 1: Firmware RV32I configura DMA (TxT), IRQ, PERF_* e W1C sem CPU mover matrizes
+[PASS][SoC 4x4 L1] Teste 2: Vetores .hex Golden Model (4x4 e 8x8) executados pelo firmware RV32I
+[PASS][SoC 4x4 L1] Teste 3: Matriz retangular 5x7*7x6 com concorrencia real CPU (0x0100..0x01FC, BUSY=1) vs DMA
+[INFO][SoC 4x4 L1] Teste 4 (32x32 variado via CPU RV32I): DMA_TOTAL_CYCLES=53480 COMP=5120 READS=16384 POLL_ITERS=4852 M0_WAIT=4959 WORK_DURING_BUSY=8
+[PASS][SoC 4x4 L1] Teste 4: Vetores Python 32x32 variados (seed=2026, 1024 resultados) comandados pela CPU RV32I
+[PASS][SoC 4x4 L1] Teste 5: Configuracao invalida (M=33) rejeitada pelo DMA e tratada pelo firmware (OUT_MAGIC=ERR!)
+[PASS][SoC 4x4 L1] Teste 6: Bases customizadas (0x0FFC/0x1FFC/0x2FFC) cruzando 4 KB via firmware RV32I
+
+--- Executando suite de contratos do firmware (4x4) ---
+[PASS][SoC 4x4 L1] Teste FW-1: Protecao da area reservada 0x0000..0x01FF (A=0x0000, C=0x0020, B=0x0100 -> FWER; 0x0200 -> DONE)
+[PASS][SoC 4x4 L1] Teste FW-2: Limite de DESC_CPU_WORK (0 e 64 com 0x0200 intacto; 65 rejeitado com FWER/0x80000002)
+[PASS][SoC 4x4 L1] Teste FW-3: Validacao de DESC_CTRL (0->0x3, 1 sem IRQ, 2 e 4 rejeitados com FWER/0x80000003)
+[PASS][SoC 4x4 L1] Teste FW-4: Timeout de polling (FWER/0x80000004 com DMA_BUSY=1) e recuperacao limpa apos reset global
+
+--- Executando firmware RV32I no SoC ARRAY_SIZE = 8 (8x8) ---
+[PASS][SoC 8x8 L1] Teste 1: Firmware RV32I configura DMA (TxT), IRQ, PERF_* e W1C sem CPU mover matrizes
+[PASS][SoC 8x8 L1] Teste 2: Vetores .hex Golden Model (4x4 e 8x8) executados pelo firmware RV32I
+[PASS][SoC 8x8 L1] Teste 3: Matriz retangular 5x7*7x6 com concorrencia real CPU (0x0100..0x01FC, BUSY=1) vs DMA
+[INFO][SoC 8x8 L1] Teste 4 (32x32 variado via CPU RV32I): DMA_TOTAL_CYCLES=16776 COMP=1408 READS=8192 POLL_ITERS=1272 M0_WAIT=4054 WORK_DURING_BUSY=8
+[PASS][SoC 8x8 L1] Teste 4: Vetores Python 32x32 variados (seed=2026, 1024 resultados) comandados pela CPU RV32I
+[PASS][SoC 8x8 L1] Teste 5: Configuracao invalida (M=33) rejeitada pelo DMA e tratada pelo firmware (OUT_MAGIC=ERR!)
+[PASS][SoC 8x8 L1] Teste 6: Bases customizadas (0x0FFC/0x1FFC/0x2FFC) cruzando 4 KB via firmware RV32I
+
+--- Executando firmware RV32I no SoC DMEM_LATENCY = 3 (4x4) ---
+[PASS][SoC 4x4 L3] Teste L3-1: SoC completo com DMEM_LATENCY=3, 7x9*9x5, quebra 4 KB e concorrencia CPU/DMA
+[PASS][SoC 4x4 L3] Teste RESET-1: Reset assincrono durante transacao pendente na ponte limpa FSM e retoma execucao limpa
+
+--- Executando testes dirigidos da ponte cpu_axi4_bridge ---
+[PASS][SoC 4x4 L1] Teste TRAP-1: Leitura ilegal da CPU (0x5000_0000) gera RRESP=DECERR -> cpu_error=1 -> trap=1
+[PASS][SoC 4x4 L1] Teste TRAP-2: Escrita ilegal da CPU (0x5000_0000) gera BRESP=DECERR -> cpu_error=1 -> trap=1
+[PASS][SoC 4x4 L1] Teste BRIDGE-1: 3 SW consecutivos (1:1 AW/W/B), SB/SH com WSTRB/preservacao e LB/LBU/LH/LHU/LW
+
+=====================================================================
+  RESUMO FINAL SOC (ENTREGA IV): 27 / 27 subtestes PASS | Erros: 0
+=====================================================================
+ALL TESTS PASSED!
+Simulation complete via $finish(1) at time 2481775 NS + 1
+./tb/unit_cpu/tb_riscv_dma_soc.sv:1398         $finish;
+xcelium> exit
+TOOL:	xrun(64)	24.09-s013: Exiting on Nov 25, 2026 at 13:49:16 -03  (total: 00:00:10)
